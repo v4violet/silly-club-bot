@@ -83,7 +83,7 @@ func main() {
 			}),
 		),
 		bot.WithCacheConfigOpts(
-			cache.WithCaches(cache.FlagGuilds, cache.FlagChannels, cache.FlagRoles, cache.FlagMembers),
+			cache.WithCaches(cache.FlagGuilds, cache.FlagChannels, cache.FlagRoles, cache.FlagMembers, cache.FlagVoiceStates),
 		),
 	)
 	if err != nil {
