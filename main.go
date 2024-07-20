@@ -74,6 +74,7 @@ func main() {
 			bot.WithListenerFunc(onGuildMemberJoin),
 			bot.WithListenerFunc(onGuildMemberLeave),
 			bot.WithListenerFunc(onGuildVoiceStateUpdate),
+			bot.WithListenerFunc(onMessageReactionAdd),
 			bot.WithListenerFunc(func(event *events.Ready) {
 				slog.Info("shard ready",
 					slog.Int("shard_id", event.ShardID()),

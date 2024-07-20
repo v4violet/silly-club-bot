@@ -53,3 +53,31 @@ func onMessageCreate(event *events.MessageCreate) {
 		}()
 	}
 }
+
+const pinEmoji = "📌"
+
+func onMessageReactionAdd(event *events.MessageReactionAdd) {
+	if event.Emoji.Name == nil || event.GuildID.String() != staticConfig.GuildID {
+		return
+	}
+	if *event.Emoji.Name != pinEmoji {
+		return
+	}
+	message, err := event.Client().Rest().GetMessage(event.ChannelID, event.MessageID)
+	if err != nil {
+		slog.Error("error getting reaction message", slog.Any("message_id", message.ID))
+		return
+	}
+	if message.Pinned {
+		return
+	}
+	count := 0
+	for _, reaction := range message.Reactions {
+		if reaction.Emoji.Name == pinEmoji {
+			count = reaction.Count
+		}
+	}
+	if count >= staticConfig.VotePinMinVotes {
+		event.Client().Rest().PinMessage(event.ChannelID, event.MessageID)
+	}
+}

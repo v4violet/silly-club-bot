@@ -29,6 +29,7 @@ type StaticConfig struct {
 	JoinRoles            JoinRolesConfig `json:"joinroles"`
 	UserLogChannel       string          `json:"user_log_channel"`
 	VoiceLimitChannel    string          `json:"voice_limit_channel"`
+	VotePinMinVotes      int             `json:"vote_pin_min_votes"`
 }
 
 type RandomReactionConfig struct {

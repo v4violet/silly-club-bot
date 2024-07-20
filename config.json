@@ -31,5 +31,6 @@
         ]
     },
     "user_log_channel": "1133468512204095608",
-    "voice_limit_channel": "1133466173430841448"
+    "voice_limit_channel": "1133466173430841448",
+    "vote_pin_min_votes": 5
 }
