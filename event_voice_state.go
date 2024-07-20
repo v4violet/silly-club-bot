@@ -53,7 +53,7 @@ func onGuildVoiceStateUpdate(event *events.GuildVoiceStateUpdate) {
 				)
 			}
 		}
-	} else if event.VoiceState.ChannelID != nil && event.OldVoiceState.ChannelID != nil {
+	} else if event.VoiceState.ChannelID == nil && event.OldVoiceState.ChannelID != nil {
 		if _, err := event.Client().Rest().CreateMessage(*event.OldVoiceState.ChannelID, discord.MessageCreate{
 			Content: fmt.Sprintf("<:Leave:1264245459493322823> %s left the channel.", event.Member.Mention()),
 			AllowedMentions: &discord.AllowedMentions{
