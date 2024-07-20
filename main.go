@@ -3,13 +3,14 @@ package main
 import (
 	"context"
 
-	"log"
+	stdlog "log"
 	"log/slog"
 	"os"
 	"os/signal"
 	"runtime/debug"
 	"syscall"
 
+	"github.com/charmbracelet/log"
 	"github.com/disgoorg/disgo"
 	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/cache"
@@ -24,6 +25,11 @@ var buildinfo *debug.BuildInfo
 var revision *string
 
 func init() {
+	logger := log.New(os.Stderr)
+	logger.SetReportTimestamp(true)
+	logger.SetReportCaller(true)
+	slog.SetDefault(slog.New(logger))
+
 	buildinf, ok := debug.ReadBuildInfo()
 	if !ok {
 		slog.Warn("unable to read build info")
@@ -87,11 +93,11 @@ func main() {
 		),
 	)
 	if err != nil {
-		log.Fatal(err)
+		stdlog.Fatal(err)
 	}
 
 	if err = client.OpenShardManager(context.Background()); err != nil {
-		log.Fatal(err)
+		stdlog.Fatal(err)
 	}
 
 	s := make(chan os.Signal, 1)

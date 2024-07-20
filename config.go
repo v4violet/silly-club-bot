@@ -5,6 +5,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"log"
+	"log/slog"
 	"regexp"
 
 	"github.com/joho/godotenv"
@@ -12,7 +13,8 @@ import (
 )
 
 type DynamicConfig struct {
-	Discord *DiscordConfig `env:", prefix=DISCORD_"`
+	Discord  *DiscordConfig `env:", prefix=DISCORD_"`
+	LogLevel slog.Level     `env:"LOG_LEVEL, default=ERROR"`
 }
 
 type DiscordConfig struct {
@@ -53,6 +55,9 @@ func init() {
 	if err := envconfig.Process(context.Background(), &dynamicConfig); err != nil {
 		log.Fatal(err)
 	}
+
+	slog.SetLogLoggerLevel(dynamicConfig.LogLevel)
+
 	if err := json.Unmarshal([]byte(staticConfigRaw), &staticConfig); err != nil {
 		log.Fatal(err)
 	}
