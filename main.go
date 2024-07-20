@@ -48,6 +48,8 @@ func main() {
 			gateway.IntentGuildMessages,
 			gateway.IntentMessageContent,
 			gateway.IntentGuildMembers,
+			gateway.IntentGuildVoiceStates,
+			gateway.IntentGuildMessageReactions,
 		),
 		gateway.WithAutoReconnect(true),
 		gateway.WithCompress(true),
