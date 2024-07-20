@@ -14,7 +14,9 @@ func onGuildVoiceStateUpdate(event *events.GuildVoiceStateUpdate) {
 	}
 	if event.VoiceState.ChannelID != nil {
 		if event.VoiceState.ChannelID != event.OldVoiceState.ChannelID {
+			joinEnd := "the channel"
 			if event.OldVoiceState.ChannelID != nil {
+				joinEnd = fmt.Sprintf("from <#%s>", *event.OldVoiceState.ChannelID)
 				if _, err := event.Client().Rest().CreateMessage(*event.OldVoiceState.ChannelID, discord.MessageCreate{
 					Content: fmt.Sprintf("<:Leave:1236848876879741060> %s moved to <#%s>.", event.Member.Mention(), *event.VoiceState.ChannelID),
 					AllowedMentions: &discord.AllowedMentions{
@@ -27,11 +29,7 @@ func onGuildVoiceStateUpdate(event *events.GuildVoiceStateUpdate) {
 					)
 				}
 			}
-			joinEnd := "the channel"
-			if event.OldVoiceState.ChannelID != nil {
-				joinEnd = fmt.Sprintf("from <#%s>", *event.OldVoiceState.ChannelID)
-			}
-			if _, err := event.Client().Rest().CreateMessage(*event.OldVoiceState.ChannelID, discord.MessageCreate{
+			if _, err := event.Client().Rest().CreateMessage(*event.VoiceState.ChannelID, discord.MessageCreate{
 				Content: fmt.Sprintf("<:Join:1236848875919249429> %s joined %s.", event.Member.Mention(), joinEnd),
 				AllowedMentions: &discord.AllowedMentions{
 					Parse: []discord.AllowedMentionType{},
@@ -39,7 +37,7 @@ func onGuildVoiceStateUpdate(event *events.GuildVoiceStateUpdate) {
 			}); err != nil {
 				slog.Error("error sending voice join message",
 					slog.Any("error", err),
-					slog.Any("channel_id", event.OldVoiceState.ChannelID),
+					slog.Any("channel_id", event.VoiceState.ChannelID),
 				)
 			}
 		} else if event.VoiceState.SessionID != event.OldVoiceState.SessionID {
