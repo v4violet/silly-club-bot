@@ -30,6 +30,9 @@ func init() {
 	} else {
 		buildinfo = buildinf
 	}
+	if val, ok := os.LookupEnv("SOURCE_COMMIT"); ok {
+		revision = &val
+	}
 	for _, kv := range buildinfo.Settings {
 		if kv.Key == "vcs.revision" {
 			revision = &kv.Value
