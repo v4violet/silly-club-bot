@@ -41,7 +41,7 @@ func onGuildVoiceStateUpdate(event *events.GuildVoiceStateUpdate) {
 				)
 			}
 		} else if event.VoiceState.SessionID != event.OldVoiceState.SessionID {
-			if _, err := event.Client().Rest().CreateMessage(*event.OldVoiceState.ChannelID, discord.MessageCreate{
+			if _, err := event.Client().Rest().CreateMessage(*event.VoiceState.ChannelID, discord.MessageCreate{
 				Content: fmt.Sprintf("<:Leave:1236848876879741060> %s rejoined the channel.", event.Member.Mention()),
 				AllowedMentions: &discord.AllowedMentions{
 					Parse: []discord.AllowedMentionType{},
@@ -49,7 +49,7 @@ func onGuildVoiceStateUpdate(event *events.GuildVoiceStateUpdate) {
 			}); err != nil {
 				slog.Error("error sending voice rejoin message",
 					slog.Any("error", err),
-					slog.Any("channel_id", event.OldVoiceState.ChannelID),
+					slog.Any("channel_id", event.VoiceState.ChannelID),
 				)
 			}
 		}
