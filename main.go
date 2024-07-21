@@ -51,15 +51,25 @@ func init() {
 func main() {
 	slog.Info("starting", slog.Any("enabled_modules", dynamicConfig.EnabledModulesRaw))
 
+	intents := gateway.IntentGuilds | gateway.IntentGuildMembers
+	caches := cache.FlagGuilds | cache.FlagMembers
+
+	if isModuleEnabled(ModuleAutoReact) {
+		intents |= gateway.IntentGuildMessages | gateway.IntentMessageContent
+	}
+	if isModuleEnabled(ModuleRandomReact) {
+		intents |= gateway.IntentGuildMessages
+	}
+	if isModuleEnabled(ModuleVoiceLog) {
+		intents |= gateway.IntentGuildVoiceStates
+		caches |= cache.FlagVoiceStates
+	}
+	if isModuleEnabled(ModuleVotePin) {
+		intents |= gateway.IntentGuildMessageReactions
+	}
+
 	gatewayConfig := []gateway.ConfigOpt{
-		gateway.WithIntents(
-			gateway.IntentGuilds,
-			gateway.IntentGuildMessages,
-			gateway.IntentMessageContent,
-			gateway.IntentGuildMembers,
-			gateway.IntentGuildVoiceStates,
-			gateway.IntentGuildMessageReactions,
-		),
+		gateway.WithIntents(intents),
 		gateway.WithAutoReconnect(true),
 		gateway.WithCompress(true),
 	}
@@ -94,7 +104,7 @@ func main() {
 			}),
 		),
 		bot.WithCacheConfigOpts(
-			cache.WithCaches(cache.FlagGuilds, cache.FlagChannels, cache.FlagRoles, cache.FlagMembers, cache.FlagVoiceStates),
+			cache.WithCaches(caches),
 		),
 	)
 	if err != nil {
