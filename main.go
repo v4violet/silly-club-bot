@@ -106,6 +106,12 @@ func main() {
 					slog.Int("shard_id", event.ShardID()),
 				)
 			}),
+			bot.WithListenerFunc(func(event *events.Resumed) {
+				slog.Info("shard resumed",
+					slog.Int("shard_id", event.ShardID()),
+					slog.Int("sequence", event.SequenceNumber()),
+				)
+			}),
 		),
 		bot.WithCacheConfigOpts(
 			cache.WithCaches(caches),
