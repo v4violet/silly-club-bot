@@ -33,33 +33,63 @@ func onGuildVoiceStateUpdate(event *events.GuildVoiceStateUpdate) {
 		mention := discord.ChannelMention(*event.OldVoiceState.ChannelID)
 		templateData.PreviousChannel = &mention
 	}
-	if event.VoiceState.ChannelID != nil {
-		if event.VoiceState.ChannelID != event.OldVoiceState.ChannelID {
-			if event.OldVoiceState.ChannelID != nil {
-				if _, err := event.Client().Rest().CreateMessage(*event.OldVoiceState.ChannelID, discord.MessageCreate{
-					Content: t("modules.voice_log.move", templateData),
-					AllowedMentions: &discord.AllowedMentions{
-						Parse: []discord.AllowedMentionType{},
-					},
-				}); err != nil {
-					slog.Error("error sending voice move message",
-						slog.Any("error", err),
-						slog.Any("channel_id", event.OldVoiceState.ChannelID),
-					)
-				}
-			}
-			if _, err := event.Client().Rest().CreateMessage(*event.VoiceState.ChannelID, discord.MessageCreate{
-				Content: t("modules.voice_log.join", templateData),
+
+	isInVoice := event.VoiceState.ChannelID != nil
+	wasInVoice := event.OldVoiceState.ChannelID != nil
+	sameChannel := false
+	sameSession := event.OldVoiceState.SessionID == event.VoiceState.SessionID
+
+	if isInVoice && wasInVoice {
+		sameChannel = (*event.OldVoiceState.ChannelID) == (*event.VoiceState.ChannelID)
+	}
+
+	// (!wasInVoice or !sameChannel) and isInVoice = join
+	// wasInVoice and !isInVoice = leave
+	// wasInVoice and isInVoice and !sameChannel = move
+	// sameChannel and !sameSession = rejoin
+	if (!wasInVoice || !sameChannel) && isInVoice {
+		if _, err := event.Client().Rest().CreateMessage(*event.VoiceState.ChannelID, discord.MessageCreate{
+			Content: t("modules.voice_log.join", templateData),
+			AllowedMentions: &discord.AllowedMentions{
+				Parse: []discord.AllowedMentionType{},
+			},
+		}); err != nil {
+			slog.Error("error sending voice join message",
+				slog.Any("error", err),
+				slog.Any("channel_id", event.VoiceState.ChannelID),
+			)
+		}
+	}
+	if wasInVoice && !isInVoice {
+		// leave
+		if _, err := event.Client().Rest().CreateMessage(*event.OldVoiceState.ChannelID, discord.MessageCreate{
+			Content: t("modules.voice_log.leave", templateData),
+			AllowedMentions: &discord.AllowedMentions{
+				Parse: []discord.AllowedMentionType{},
+			},
+		}); err != nil {
+			slog.Error("error sending voice leave message",
+				slog.Any("error", err),
+				slog.Any("channel_id", event.OldVoiceState.ChannelID),
+			)
+		}
+	}
+	if wasInVoice && isInVoice {
+		if !sameChannel {
+			// move
+			if _, err := event.Client().Rest().CreateMessage(*event.OldVoiceState.ChannelID, discord.MessageCreate{
+				Content: t("modules.voice_log.move", templateData),
 				AllowedMentions: &discord.AllowedMentions{
 					Parse: []discord.AllowedMentionType{},
 				},
 			}); err != nil {
-				slog.Error("error sending voice join message",
+				slog.Error("error sending voice move message",
 					slog.Any("error", err),
-					slog.Any("channel_id", event.VoiceState.ChannelID),
+					slog.Any("channel_id", event.OldVoiceState.ChannelID),
 				)
 			}
-		} else if event.VoiceState.SessionID != event.OldVoiceState.SessionID {
+		} else if !sameSession {
+			// rejoin
 			if _, err := event.Client().Rest().CreateMessage(*event.VoiceState.ChannelID, discord.MessageCreate{
 				Content: t("modules.voice_log.rejoin", templateData),
 				AllowedMentions: &discord.AllowedMentions{
@@ -71,18 +101,6 @@ func onGuildVoiceStateUpdate(event *events.GuildVoiceStateUpdate) {
 					slog.Any("channel_id", event.VoiceState.ChannelID),
 				)
 			}
-		}
-	} else if event.OldVoiceState.ChannelID != nil {
-		if _, err := event.Client().Rest().CreateMessage(*event.OldVoiceState.ChannelID, discord.MessageCreate{
-			Content: t("modules.voice_log.leave", templateData),
-			AllowedMentions: &discord.AllowedMentions{
-				Parse: []discord.AllowedMentionType{},
-			},
-		}); err != nil {
-			slog.Error("error sending voice leave message",
-				slog.Any("error", err),
-				slog.Any("channel_id", event.OldVoiceState.ChannelID),
-			)
 		}
 	}
 }
