@@ -37,7 +37,7 @@ func onGuildMemberJoin(event *events.GuildMemberJoin) {
 	}
 	if isModuleEnabled(ModuleUserLog) {
 		if _, err := event.Client().Rest().CreateMessage(snowflake.MustParse(staticConfig.UserLogChannel), discord.MessageCreate{
-			Content: fmt.Sprintf("<:Join:1264245344129253456> %s joined the server.", event.Member.Mention()),
+			Content: fmt.Sprintf("<:Join:1236848875919249429> %s joined the server.", event.Member.Mention()),
 			AllowedMentions: &discord.AllowedMentions{
 				Parse: []discord.AllowedMentionType{},
 			},
@@ -57,7 +57,7 @@ func onGuildMemberLeave(event *events.GuildMemberLeave) {
 	go updateVoiceLimit(event.Client())
 	if isModuleEnabled(ModuleUserLog) {
 		if _, err := event.Client().Rest().CreateMessage(snowflake.MustParse(staticConfig.UserLogChannel), discord.MessageCreate{
-			Content: fmt.Sprintf("<:Leave:1264245459493322823> %s left the server.", event.Member.Mention()),
+			Content: fmt.Sprintf("<:Leave:1236848876879741060> %s left the server.", event.Member.Mention()),
 			AllowedMentions: &discord.AllowedMentions{
 				Parse: []discord.AllowedMentionType{},
 			},
