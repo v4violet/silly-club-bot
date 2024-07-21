@@ -26,12 +26,13 @@ type DiscordConfig struct {
 }
 
 type StaticConfig struct {
-	GuildID           string               `json:"guild_id"`
-	RandomReaction    RandomReactionConfig `json:"random_reaction"`
-	JoinRoles         JoinRolesConfig      `json:"joinroles"`
-	UserLogChannel    string               `json:"user_log_channel"`
-	VoiceLimitChannel string               `json:"voice_limit_channel"`
-	VotePinMinVotes   int                  `json:"vote_pin_min_votes"`
+	GuildID            string               `json:"guild_id"`
+	RandomReaction     RandomReactionConfig `json:"random_reaction"`
+	JoinRoles          JoinRolesConfig      `json:"joinroles"`
+	UserLogChannel     string               `json:"user_log_channel"`
+	VoiceLimitChannel  string               `json:"voice_limit_channel"`
+	VotePinMinVotes    int                  `json:"vote_pin_min_votes"`
+	SetColorLogChannel string               `json:"setcolor_log_channel"`
 
 	AutoReactRaw map[string]string `json:"autoreact"`
 	AutoReact    map[*regexp.Regexp]string
@@ -102,6 +103,7 @@ const (
 	ModuleRandomReact Module = "random_react"
 	ModuleVotePin     Module = "vote_pin"
 	ModuleVoiceLog    Module = "voice_log"
+	ModuleSetColor    Module = "set_color"
 	ModuleAll         Module = "all"
 )
 

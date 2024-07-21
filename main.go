@@ -18,6 +18,7 @@ import (
 	"github.com/disgoorg/disgo/events"
 	"github.com/disgoorg/disgo/gateway"
 	"github.com/disgoorg/disgo/sharding"
+	"github.com/disgoorg/snowflake/v2"
 	_ "go.uber.org/automaxprocs"
 )
 
@@ -77,6 +78,7 @@ func main() {
 			bot.WithListenerFunc(onGuildMemberLeave),
 			bot.WithListenerFunc(onGuildVoiceStateUpdate),
 			bot.WithListenerFunc(onMessageReactionAdd),
+			bot.WithListenerFunc(onApplicationCommandInteractionCreate),
 			bot.WithListenerFunc(func(event *events.Ready) {
 				slog.Info("shard ready",
 					slog.Int("shard_id", event.ShardID()),
@@ -99,6 +101,8 @@ func main() {
 		stdlog.Fatal(err)
 	}
 
+	registerCommands(client)
+
 	if err = client.OpenShardManager(context.Background()); err != nil {
 		stdlog.Fatal(err)
 	}
@@ -114,4 +118,29 @@ func main() {
 	client.Close(context.Background())
 	slog.Info("goodbye")
 	os.Exit(0)
+}
+
+func registerCommands(client bot.Client) {
+	commands := make([]discord.ApplicationCommandCreate, 0, 1)
+	if isModuleEnabled(ModuleSetColor) {
+		commands = append(commands, discord.SlashCommandCreate{
+			Name:        "setcolor",
+			Description: "set your custom role color",
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionString{
+					Name:        "color",
+					Description: "hex color",
+					Required:    true,
+				},
+			},
+		})
+	}
+	if _, err := client.Rest().SetGuildCommands(client.ApplicationID(), snowflake.MustParse(dynamicConfig.Discord.GuildId), commands); err != nil {
+		slog.Error("error setting guild commands",
+			slog.Any("error", err),
+			slog.Any("application_id", client.ApplicationID()),
+			slog.Any("guild_id", dynamicConfig.Discord.GuildId),
+		)
+	}
+	slog.Info("successfully set guild commands", slog.Int("command_count", len(commands)))
 }
