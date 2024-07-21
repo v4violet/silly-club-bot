@@ -9,7 +9,7 @@ import (
 )
 
 func onGuildVoiceStateUpdate(event *events.GuildVoiceStateUpdate) {
-	if isModuleEnabled(ModuleVoiceLog) {
+	if !isModuleEnabled(ModuleVoiceLog) {
 		return
 	}
 	if event.VoiceState.GuildID.String() != dynamicConfig.Discord.GuildId {

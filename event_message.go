@@ -15,7 +15,7 @@ func onMessageCreate(event *events.MessageCreate) {
 		return
 	}
 	var rest = event.Client().Rest()
-	if !isModuleEnabled(ModuleAutoReact) {
+	if isModuleEnabled(ModuleAutoReact) {
 		for regex, emojiId := range staticConfig.AutoReact {
 			go func(regex *regexp.Regexp, emojiId string) {
 				if regex.MatchString(event.Message.Content) {
@@ -31,7 +31,7 @@ func onMessageCreate(event *events.MessageCreate) {
 		}
 	}
 
-	if !isModuleEnabled(ModuleRandomReact) {
+	if isModuleEnabled(ModuleRandomReact) {
 		_, channelWhitelisted := staticConfig.RandomReaction.ChannelWhitelist[event.ChannelID.String()]
 
 		if rand.Float32() <= (staticConfig.RandomReaction.Percentage/100) && channelWhitelisted {
@@ -61,7 +61,7 @@ func onMessageCreate(event *events.MessageCreate) {
 const pinEmoji = "📌"
 
 func onMessageReactionAdd(event *events.MessageReactionAdd) {
-	if isModuleEnabled(ModuleVotePin) {
+	if !isModuleEnabled(ModuleVotePin) {
 		return
 	}
 	if event.Emoji.Name == nil || event.GuildID.String() != dynamicConfig.Discord.GuildId {

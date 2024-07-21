@@ -63,13 +63,13 @@ func init() {
 		log.Fatal(err)
 	}
 
+	slog.SetLogLoggerLevel(dynamicConfig.LogLevel)
+
 	dynamicConfig.EnabledModules = make(map[Module]bool, len(dynamicConfig.EnabledModulesRaw))
 
 	for _, module := range dynamicConfig.EnabledModulesRaw {
 		dynamicConfig.EnabledModules[module] = true
 	}
-
-	slog.SetLogLoggerLevel(dynamicConfig.LogLevel)
 
 	if err := json.Unmarshal([]byte(staticConfigRaw), &staticConfig); err != nil {
 		log.Fatal(err)

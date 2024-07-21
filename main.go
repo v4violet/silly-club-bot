@@ -48,6 +48,8 @@ func init() {
 }
 
 func main() {
+	slog.Info("starting", slog.Any("enabled_modules", dynamicConfig.EnabledModulesRaw))
+
 	gatewayConfig := []gateway.ConfigOpt{
 		gateway.WithIntents(
 			gateway.IntentGuilds,
