@@ -20,25 +20,33 @@ var setColorRegex = regexp.MustCompile("^#?([[:xdigit:]]{6})")
 func onApplicationCommandInteractionCreate(event *events.ApplicationCommandInteractionCreate) {
 	if event.Data.CommandName() != "setcolor" {
 		event.CreateMessage(discord.MessageCreate{
-			Content: "unknown command",
-			Flags:   discord.MessageFlagEphemeral,
-		})
-		return
-	}
-	if !isModuleEnabled(ModuleSetColor) {
-		event.CreateMessage(discord.MessageCreate{
-			Content: "`set_color` module not enabled",
+			Content: t("generic.application_interaction.unknown_command", nil),
 			Flags:   discord.MessageFlagEphemeral,
 		})
 		return
 	}
 	if event.GuildID() == nil {
 		event.CreateMessage(discord.MessageCreate{
-			Content: "can only run in servers",
+			Content: t("generic.application_interaction.guild_only", nil),
 			Flags:   discord.MessageFlagEphemeral,
 		})
 		return
 	}
+	if event.GuildID().String() != dynamicConfig.Discord.GuildId {
+		slog.Warn("this isnt our guild, ignoring",
+			slog.Any("expected", event.GuildID()),
+			slog.String("found", dynamicConfig.Discord.GuildId),
+		)
+		return
+	}
+	if !isModuleEnabled(ModuleSetColor) {
+		event.CreateMessage(discord.MessageCreate{
+			Content: t("modules.set_color.errors.disabled", nil),
+			Flags:   discord.MessageFlagEphemeral,
+		})
+		return
+	}
+
 	data := event.SlashCommandInteractionData()
 	color_raw := strings.ToLower(data.String("color"))
 	var color int
@@ -48,7 +56,7 @@ func onApplicationCommandInteractionCreate(event *events.ApplicationCommandInter
 		color_string_matches := setColorRegex.FindStringSubmatch(color_raw)
 		if len(color_string_matches) < 2 {
 			event.CreateMessage(discord.MessageCreate{
-				Content: "Invalid color",
+				Content: t("modules.set_color.errors.invalid_color", nil),
 				Flags:   discord.MessageFlagEphemeral,
 			})
 			return
@@ -61,7 +69,7 @@ func onApplicationCommandInteractionCreate(event *events.ApplicationCommandInter
 				slog.String("input", color_string),
 			)
 			event.CreateMessage(discord.MessageCreate{
-				Content: "Invalid color",
+				Content: t("modules.set_color.errors.invalid_color", nil),
 				Flags:   discord.MessageFlagEphemeral,
 			})
 			return
@@ -74,7 +82,7 @@ func onApplicationCommandInteractionCreate(event *events.ApplicationCommandInter
 	guild_roles, err := event.Client().Rest().GetRoles(*event.GuildID())
 	if err != nil {
 		event.Client().Rest().UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.NewMessageUpdateBuilder().
-			SetContent("error getting guild roles").
+			SetContent(t("modules.set_color.errors.guild_roles", nil)).
 			SetFlags(discord.MessageFlagEphemeral).
 			Build(),
 		)
@@ -82,6 +90,7 @@ func onApplicationCommandInteractionCreate(event *events.ApplicationCommandInter
 			slog.Any("error", err),
 			slog.Any("guild_id", *event.GuildID()),
 		)
+		return
 	}
 	var color_role *discord.Role
 out:
@@ -103,7 +112,7 @@ out:
 			Permissions: &permissions,
 		}); err != nil {
 			event.Client().Rest().UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.NewMessageUpdateBuilder().
-				SetContent("error updating color role").
+				SetContent(t("modules.set_color.errors.role_update", nil)).
 				SetFlags(discord.MessageFlagEphemeral).
 				Build(),
 			)
@@ -126,7 +135,7 @@ out:
 				slog.Any("guild_id", *event.GuildID()),
 			)
 			event.Client().Rest().UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.NewMessageUpdateBuilder().
-				SetContent("error creating color role").
+				SetContent(t("modules.set_color.errors.role_create", nil)).
 				SetFlags(discord.MessageFlagEphemeral).
 				Build(),
 			)
@@ -140,7 +149,7 @@ out:
 				slog.Any("user_id", event.User().ID),
 			)
 			event.Client().Rest().UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.NewMessageUpdateBuilder().
-				SetContent("error adding color role to member").
+				SetContent(t("modules.set_color.errors.role_add_member", nil)).
 				SetFlags(discord.MessageFlagEphemeral).
 				Build(),
 			)
@@ -150,7 +159,9 @@ out:
 
 	event.Client().Rest().UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.NewMessageUpdateBuilder().
 		SetEmbeds(discord.Embed{
-			Title: fmt.Sprintf("Set color to `#%s`", color_str),
+			Title: t("modules.set_color.success", map[string]string{
+				"Color": "#" + color_str,
+			}),
 			Color: color,
 		}).
 		SetFlags(discord.MessageFlagEphemeral).

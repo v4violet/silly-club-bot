@@ -66,7 +66,11 @@ func main() {
 		intents |= gateway.IntentGuildMessageReactions
 	}
 
-	slog.Info("starting", slog.Any("enabled_modules", dynamicConfig.EnabledModulesRaw), slog.Any("intents", intents), slog.Any("enabled_caches", caches))
+	slog.Info("starting",
+		slog.Any("enabled_modules", dynamicConfig.EnabledModulesRaw),
+		slog.Any("intents", intents),
+		slog.Any("enabled_caches", caches),
+	)
 
 	gatewayConfig := []gateway.ConfigOpt{
 		gateway.WithIntents(intents),

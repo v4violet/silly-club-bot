@@ -1,0 +1,15 @@
+{{define "modules.voice_log.join" -}}
+{{template "emojis.join"}} {{.User}} joined {{if .PreviousChannel}}from {{.PreviousChannel}}{{else}}the channel{{- end}}.
+{{- end}}
+
+{{define "modules.voice_log.move" -}}
+{{template "emojis.leave"}} {{.User}} moved to {{.Channel}}.
+{{- end}}
+
+{{define "modules.voice_log.rejoin" -}}
+{{template "emojis.rejoin"}} {{.User}} rejoined the channel.
+{{- end}}
+
+{{define "modules.voice_log.leave" -}}
+{{template "emojis.leave"}} {{.User}} left the channel.
+{{- end}}

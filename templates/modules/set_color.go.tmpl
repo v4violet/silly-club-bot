@@ -1,0 +1,27 @@
+{{define "modules.set_color.success" -}}
+set color to `{{.Color}}`
+{{- end}}
+
+{{define "modules.set_color.errors.disabled" -}}
+`set_color` module not enabled
+{{- end}}
+
+{{define "modules.set_color.errors.invalid_color" -}}
+invalid color
+{{- end}}
+
+{{define "modules.set_color.errors.guild_roles" -}}
+error getting guild roles
+{{- end}}
+
+{{define "modules.set_color.errors.role_update" -}}
+error updating color role
+{{- end}}
+
+{{define "modules.set_color.errors.role_create" -}}
+error creating color role
+{{- end}}
+
+{{define "modules.set_color.errors.role_add_member" -}}
+error adding color role to member
+{{- end}}

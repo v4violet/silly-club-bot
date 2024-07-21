@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log/slog"
 
 	"github.com/disgoorg/disgo/bot"
@@ -37,7 +36,9 @@ func onGuildMemberJoin(event *events.GuildMemberJoin) {
 	}
 	if isModuleEnabled(ModuleUserLog) {
 		if _, err := event.Client().Rest().CreateMessage(snowflake.MustParse(staticConfig.UserLogChannel), discord.MessageCreate{
-			Content: fmt.Sprintf("<:Join:1236848875919249429> %s joined the server.", event.Member.Mention()),
+			Content: t("modules.user_log.join", map[string]string{
+				"User": event.Member.Mention(),
+			}),
 			AllowedMentions: &discord.AllowedMentions{
 				Parse: []discord.AllowedMentionType{},
 			},
@@ -57,7 +58,9 @@ func onGuildMemberLeave(event *events.GuildMemberLeave) {
 	go updateVoiceLimit(event.Client())
 	if isModuleEnabled(ModuleUserLog) {
 		if _, err := event.Client().Rest().CreateMessage(snowflake.MustParse(staticConfig.UserLogChannel), discord.MessageCreate{
-			Content: fmt.Sprintf("<:Leave:1236848876879741060> %s left the server.", event.Member.Mention()),
+			Content: t("modules.user_log.leave", map[string]string{
+				"User": event.Member.Mention(),
+			}),
 			AllowedMentions: &discord.AllowedMentions{
 				Parse: []discord.AllowedMentionType{},
 			},

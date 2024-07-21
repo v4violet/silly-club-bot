@@ -1,12 +1,17 @@
 package main
 
 import (
-	"fmt"
 	"log/slog"
 
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/events"
 )
+
+type VoiceStateTemplateData struct {
+	User            string
+	Channel         *string
+	PreviousChannel *string
+}
 
 func onGuildVoiceStateUpdate(event *events.GuildVoiceStateUpdate) {
 	if !isModuleEnabled(ModuleVoiceLog) {
@@ -15,13 +20,24 @@ func onGuildVoiceStateUpdate(event *events.GuildVoiceStateUpdate) {
 	if event.VoiceState.GuildID.String() != dynamicConfig.Discord.GuildId {
 		return
 	}
+	templateData := VoiceStateTemplateData{
+		User:            event.Member.Mention(),
+		Channel:         nil,
+		PreviousChannel: nil,
+	}
+	if event.VoiceState.ChannelID != nil {
+		mention := discord.ChannelMention(*event.VoiceState.ChannelID)
+		templateData.Channel = &mention
+	}
+	if event.OldVoiceState.ChannelID != nil {
+		mention := discord.ChannelMention(*event.OldVoiceState.ChannelID)
+		templateData.PreviousChannel = &mention
+	}
 	if event.VoiceState.ChannelID != nil {
 		if event.VoiceState.ChannelID != event.OldVoiceState.ChannelID {
-			joinEnd := "the channel"
 			if event.OldVoiceState.ChannelID != nil {
-				joinEnd = fmt.Sprintf("from <#%s>", *event.OldVoiceState.ChannelID)
 				if _, err := event.Client().Rest().CreateMessage(*event.OldVoiceState.ChannelID, discord.MessageCreate{
-					Content: fmt.Sprintf("<:Leave:1236848876879741060> %s moved to <#%s>.", event.Member.Mention(), *event.VoiceState.ChannelID),
+					Content: t("modules.voice_log.move", templateData),
 					AllowedMentions: &discord.AllowedMentions{
 						Parse: []discord.AllowedMentionType{},
 					},
@@ -33,7 +49,7 @@ func onGuildVoiceStateUpdate(event *events.GuildVoiceStateUpdate) {
 				}
 			}
 			if _, err := event.Client().Rest().CreateMessage(*event.VoiceState.ChannelID, discord.MessageCreate{
-				Content: fmt.Sprintf("<:Join:1236848875919249429> %s joined %s.", event.Member.Mention(), joinEnd),
+				Content: t("modules.voice_log.join", templateData),
 				AllowedMentions: &discord.AllowedMentions{
 					Parse: []discord.AllowedMentionType{},
 				},
@@ -45,7 +61,7 @@ func onGuildVoiceStateUpdate(event *events.GuildVoiceStateUpdate) {
 			}
 		} else if event.VoiceState.SessionID != event.OldVoiceState.SessionID {
 			if _, err := event.Client().Rest().CreateMessage(*event.VoiceState.ChannelID, discord.MessageCreate{
-				Content: fmt.Sprintf("<:Rejoin:1239636656131408013> %s rejoined the channel.", event.Member.Mention()),
+				Content: t("modules.voice_log.rejoin", templateData),
 				AllowedMentions: &discord.AllowedMentions{
 					Parse: []discord.AllowedMentionType{},
 				},
@@ -58,7 +74,7 @@ func onGuildVoiceStateUpdate(event *events.GuildVoiceStateUpdate) {
 		}
 	} else if event.OldVoiceState.ChannelID != nil {
 		if _, err := event.Client().Rest().CreateMessage(*event.OldVoiceState.ChannelID, discord.MessageCreate{
-			Content: fmt.Sprintf("<:Leave:1236848876879741060> %s left the channel.", event.Member.Mention()),
+			Content: t("modules.voice_log.leave", templateData),
 			AllowedMentions: &discord.AllowedMentions{
 				Parse: []discord.AllowedMentionType{},
 			},
