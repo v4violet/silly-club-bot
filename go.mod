@@ -3,6 +3,9 @@ module github.com/v4violet/silly-club-bot
 go 1.22.5
 
 require (
+	github.com/charmbracelet/log v0.4.0
+	github.com/disgoorg/disgo v0.18.9
+	github.com/disgoorg/snowflake/v2 v2.0.3
 	github.com/joho/godotenv v1.5.1
 	github.com/sethvargo/go-envconfig v1.1.0
 )
@@ -10,10 +13,7 @@ require (
 require (
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/charmbracelet/lipgloss v0.10.0 // indirect
-	github.com/charmbracelet/log v0.4.0 // indirect
-	github.com/disgoorg/disgo v0.18.9 // indirect
 	github.com/disgoorg/json v1.1.0 // indirect
-	github.com/disgoorg/snowflake/v2 v2.0.3 // indirect
 	github.com/go-logfmt/logfmt v0.6.0 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
