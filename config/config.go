@@ -55,7 +55,7 @@ var Config struct {
 
 func Init() {
 	godotenv.Load(".env")
-	godotenv.Load("default.env")
+	godotenv.Load(".env.default")
 
 	snowflake.AllowUnquoted = true
 	if err := envconfig.Process(context.Background(), &Config); err != nil {
