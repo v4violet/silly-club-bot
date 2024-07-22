@@ -14,6 +14,6 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 
 FROM gcr.io/distroless/static-debian12
 
-COPY --from=builder /app/program /
+COPY --from=builder /app/program /app/.env.default /
 
 ENTRYPOINT ["/program"]
