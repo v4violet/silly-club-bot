@@ -2,12 +2,11 @@ package main
 
 import (
 	"context"
-
-	stdlog "log"
+	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
-	"runtime/debug"
+	"strings"
 	"syscall"
 
 	"github.com/charmbracelet/log"
@@ -17,150 +16,126 @@ import (
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/events"
 	"github.com/disgoorg/disgo/gateway"
-	"github.com/disgoorg/disgo/sharding"
-	"github.com/disgoorg/snowflake/v2"
-	_ "go.uber.org/automaxprocs"
+	"github.com/v4violet/silly-club-bot/config"
+	"github.com/v4violet/silly-club-bot/modules"
+	"github.com/v4violet/silly-club-bot/modules/auto_react"
+	"github.com/v4violet/silly-club-bot/modules/join_roles"
+	"github.com/v4violet/silly-club-bot/modules/random_react"
+	"github.com/v4violet/silly-club-bot/modules/set_color"
+	"github.com/v4violet/silly-club-bot/modules/user_log"
+	"github.com/v4violet/silly-club-bot/modules/voice_limit"
+	"github.com/v4violet/silly-club-bot/modules/voice_log"
+	"github.com/v4violet/silly-club-bot/modules/vote_pin"
+	"github.com/v4violet/silly-club-bot/templates"
 )
 
-var buildinfo *debug.BuildInfo
-var revision *string
-
 func init() {
-	logger := log.New(os.Stderr)
-	logger.SetReportTimestamp(true)
+	config.Init()
+	fmt.Println("config")
+
+	slog.SetLogLoggerLevel(config.Config.LogLevel)
+
+	logger := log.New(os.Stdout)
+
+	logger.SetLevel(log.Level(config.Config.LogLevel))
+
 	logger.SetReportCaller(true)
+	logger.SetReportTimestamp(true)
+
 	slog.SetDefault(slog.New(logger))
 
-	buildinf, ok := debug.ReadBuildInfo()
-	if !ok {
-		slog.Warn("unable to read build info")
-	} else {
-		buildinfo = buildinf
-	}
-	if val, ok := os.LookupEnv("SOURCE_COMMIT"); ok {
-		revision = &val
-	}
-	for _, kv := range buildinfo.Settings {
-		if kv.Key == "vcs.revision" {
-			revision = &kv.Value
-			break
-		}
-	}
+	templates.Init()
+
+	auto_react.Init()
+	join_roles.Init()
+	random_react.Init()
+	set_color.Init()
+	user_log.Init()
+	voice_limit.Init()
+	voice_log.Init()
+	vote_pin.Init()
 }
 
 func main() {
-	intents := gateway.IntentGuilds | gateway.IntentGuildMembers
-	caches := cache.FlagGuilds | cache.FlagMembers
+	clientConfig := []bot.ConfigOpt{
+		bot.WithGatewayConfigOpts(
+			gateway.WithCompress(true),
+			gateway.WithAutoReconnect(true),
+			gateway.WithLogger(slog.Default()),
+			gateway.WithIntents(gateway.IntentGuilds),
+		),
+		bot.WithCacheConfigOpts(cache.WithCaches(cache.FlagGuilds)),
+		bot.WithEventListenerFunc(func(event *events.Ready) {
+			slog.Info("ready",
+				slog.String("user_id", event.User.ID.String()),
+				slog.String("user_tag", event.User.Tag()),
+			)
+		}),
+		bot.WithEventListenerFunc(func(event *events.GuildsReady) {
+			slog.Info("guilds ready", slog.Int("count", event.Client().Caches().GuildsLen()))
+		}),
+		bot.WithEventListenerFunc(func(event *events.Resumed) {
+			slog.Info("resumed", slog.Int("sequence", event.SequenceNumber()))
+		}),
+	}
 
-	if isModuleEnabled(ModuleAutoReact) {
-		intents |= gateway.IntentGuildMessages | gateway.IntentMessageContent
+	if config.Config.GitRevision != nil {
+		clientConfig = append(clientConfig, bot.WithGatewayConfigOpts(gateway.WithPresenceOpts(gateway.WithCustomActivity((*config.Config.GitRevision)[:7]))))
 	}
-	if isModuleEnabled(ModuleRandomReact) {
-		intents |= gateway.IntentGuildMessages
+
+	enabledModules := []string{}
+
+	applicationCommands := []discord.ApplicationCommandCreate{}
+
+	for _, module := range modules.Modules {
+		if config.ModuleEnabled(module.Name) {
+			enabledModules = append(enabledModules, module.Name)
+			clientConfig = append(clientConfig, module.Init()...)
+			if module.ApplicationCommands != nil {
+				applicationCommands = append(applicationCommands, *module.ApplicationCommands...)
+			}
+		}
 	}
-	if isModuleEnabled(ModuleVoiceLog) {
-		intents |= gateway.IntentGuildVoiceStates
-		caches |= cache.FlagVoiceStates
-	}
-	if isModuleEnabled(ModuleVotePin) {
-		intents |= gateway.IntentGuildMessageReactions
+
+	client, err := disgo.New(config.Config.Discord.Token, clientConfig...)
+	if err != nil {
+		slog.Error("error constructing bot client", slog.Any("error", err))
+		os.Exit(1)
+		return
 	}
 
 	slog.Info("starting",
-		slog.Any("enabled_modules", dynamicConfig.EnabledModulesRaw),
-		slog.Any("intents", intents),
-		slog.Any("enabled_caches", caches),
+		slog.String("enabled_modules", strings.Join(enabledModules, ",")),
+		slog.Any("intents", client.Gateway().Intents()),
+		slog.Any("caches", client.Caches().CacheFlags()),
+		slog.Any("guild_id", config.Config.Discord.GuildId),
 	)
 
-	gatewayConfig := []gateway.ConfigOpt{
-		gateway.WithIntents(intents),
-		gateway.WithAutoReconnect(true),
-		gateway.WithCompress(true),
+	if _, err := client.Rest().SetGuildCommands(client.ApplicationID(), config.Config.Discord.GuildId, applicationCommands); err != nil {
+		slog.Error("error setting guild commands",
+			slog.Any("error", err),
+			slog.Any("application_id", client.ApplicationID()),
+			slog.Any("guild_id", config.Config.Discord.GuildId),
+		)
+		os.Exit(1)
+		return
 	}
-	if revision != nil {
-		gatewayConfig = append(gatewayConfig, gateway.WithPresenceOpts(gateway.WithCustomActivity((*revision)[:7])))
-	}
-	client, err := disgo.New(dynamicConfig.Discord.Token,
-		bot.WithShardManagerConfigOpts(
-			sharding.WithShardCount(1),
-			sharding.WithAutoScaling(true),
-			sharding.WithGatewayConfigOpts(gatewayConfig...),
-		),
-		bot.WithEventManagerConfigOpts(
-			bot.WithListenerFunc(onMessageCreate),
-			bot.WithListenerFunc(onGuildMemberJoin),
-			bot.WithListenerFunc(onGuildMemberLeave),
-			bot.WithListenerFunc(onGuildVoiceStateUpdate),
-			bot.WithListenerFunc(onMessageReactionAdd),
-			bot.WithListenerFunc(onApplicationCommandInteractionCreate),
-			bot.WithListenerFunc(func(event *events.Ready) {
-				slog.Info("shard ready",
-					slog.Int("shard_id", event.ShardID()),
-					slog.String("user_id", event.User.ID.String()),
-					slog.String("user_tag", event.User.Tag()),
-				)
-			}),
-			bot.WithListenerFunc(func(event *events.GuildsReady) {
-				slog.Info("guilds ready",
-					slog.Int("count", event.Client().Caches().GuildsLen()),
-					slog.Int("shard_id", event.ShardID()),
-				)
-			}),
-			bot.WithListenerFunc(func(event *events.Resumed) {
-				slog.Info("shard resumed",
-					slog.Int("shard_id", event.ShardID()),
-					slog.Int("sequence", event.SequenceNumber()),
-				)
-			}),
-		),
-		bot.WithCacheConfigOpts(
-			cache.WithCaches(caches),
-		),
-	)
-	if err != nil {
-		stdlog.Fatal(err)
-	}
+	slog.Info("successfully set guild commands", slog.Int("command_count", len(applicationCommands)))
 
-	registerCommands(client)
-
-	if err = client.OpenShardManager(context.Background()); err != nil {
-		stdlog.Fatal(err)
+	if err := client.OpenGateway(context.Background()); err != nil {
+		slog.Error("error opening gateway", slog.Any("error", err))
+		os.Exit(1)
+		return
 	}
 
 	s := make(chan os.Signal, 1)
 	signal.Notify(s, syscall.SIGINT, syscall.SIGTERM)
 	sig := <-s
+
 	slog.Info("shutting down", slog.String("signal", sig.String()))
-	for shardId := range client.ShardManager().Shards() {
-		client.SetPresenceForShard(context.Background(), shardId, gateway.WithOnlineStatus(discord.OnlineStatusInvisible))
-	}
+	client.SetPresence(context.Background(), gateway.WithOnlineStatus(discord.OnlineStatusInvisible))
 	slog.Info("closing client")
 	client.Close(context.Background())
 	slog.Info("goodbye")
 	os.Exit(0)
-}
-
-func registerCommands(client bot.Client) {
-	commands := make([]discord.ApplicationCommandCreate, 0, 1)
-	if isModuleEnabled(ModuleSetColor) {
-		commands = append(commands, discord.SlashCommandCreate{
-			Name:        "setcolor",
-			Description: "set your custom role color",
-			Options: []discord.ApplicationCommandOption{
-				discord.ApplicationCommandOptionString{
-					Name:        "color",
-					Description: "hex color",
-					Required:    true,
-				},
-			},
-		})
-	}
-	if _, err := client.Rest().SetGuildCommands(client.ApplicationID(), snowflake.MustParse(dynamicConfig.Discord.GuildId), commands); err != nil {
-		slog.Error("error setting guild commands",
-			slog.Any("error", err),
-			slog.Any("application_id", client.ApplicationID()),
-			slog.Any("guild_id", dynamicConfig.Discord.GuildId),
-		)
-	}
-	slog.Info("successfully set guild commands", slog.Int("command_count", len(commands)))
 }

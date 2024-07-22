@@ -1,49 +1,58 @@
-package main
+package set_color
 
 import (
 	"fmt"
 	"log/slog"
 	"math"
-	"math/rand"
+	"math/rand/v2"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/events"
-	"github.com/disgoorg/snowflake/v2"
+	"github.com/v4violet/silly-club-bot/config"
+	"github.com/v4violet/silly-club-bot/modules"
+	"github.com/v4violet/silly-club-bot/templates"
 )
 
 var setColorRegex = regexp.MustCompile("^#?([[:xdigit:]]{6})")
 
+func Init() {
+	modules.RegisterModule(modules.Module{
+		Name: "set_color",
+		Init: func() []bot.ConfigOpt {
+			return []bot.ConfigOpt{
+				bot.WithEventListenerFunc(onApplicationCommandInteractionCreate),
+			}
+		},
+		ApplicationCommands: &[]discord.ApplicationCommandCreate{
+			discord.SlashCommandCreate{
+				Name:        "setcolor",
+				Description: "set your custom role color",
+				Options: []discord.ApplicationCommandOption{
+					discord.ApplicationCommandOptionString{
+						Name:        "color",
+						Description: "hex color",
+						Required:    true,
+					},
+				},
+			},
+		},
+	})
+}
+
 func onApplicationCommandInteractionCreate(event *events.ApplicationCommandInteractionCreate) {
-	if event.Data.CommandName() != "setcolor" {
-		event.CreateMessage(discord.MessageCreate{
-			Content: t("generic.application_interaction.unknown_command", nil),
-			Flags:   discord.MessageFlagEphemeral,
-		})
+	if event.GuildID() == nil || event.Data.CommandName() != "setcolor" {
 		return
 	}
-	if event.GuildID() == nil {
-		event.CreateMessage(discord.MessageCreate{
-			Content: t("generic.application_interaction.guild_only", nil),
-			Flags:   discord.MessageFlagEphemeral,
-		})
-		return
-	}
-	if event.GuildID().String() != dynamicConfig.Discord.GuildId {
+	if *event.GuildID() != config.Config.Discord.GuildId {
 		slog.Warn("this isnt our guild, ignoring",
 			slog.Any("expected", event.GuildID()),
-			slog.String("found", dynamicConfig.Discord.GuildId),
+			slog.Any("found", config.Config.Discord.GuildId),
 		)
-		return
-	}
-	if !isModuleEnabled(ModuleSetColor) {
-		event.CreateMessage(discord.MessageCreate{
-			Content: t("modules.set_color.errors.disabled", nil),
-			Flags:   discord.MessageFlagEphemeral,
-		})
 		return
 	}
 
@@ -56,7 +65,7 @@ func onApplicationCommandInteractionCreate(event *events.ApplicationCommandInter
 		color_string_matches := setColorRegex.FindStringSubmatch(color_raw)
 		if len(color_string_matches) < 2 {
 			event.CreateMessage(discord.MessageCreate{
-				Content: t("modules.set_color.errors.invalid_color", nil),
+				Content: templates.Exec("modules.set_color.errors.invalid_color", nil),
 				Flags:   discord.MessageFlagEphemeral,
 			})
 			return
@@ -69,7 +78,7 @@ func onApplicationCommandInteractionCreate(event *events.ApplicationCommandInter
 				slog.String("input", color_string),
 			)
 			event.CreateMessage(discord.MessageCreate{
-				Content: t("modules.set_color.errors.invalid_color", nil),
+				Content: templates.Exec("modules.set_color.errors.invalid_color", nil),
 				Flags:   discord.MessageFlagEphemeral,
 			})
 			return
@@ -82,7 +91,7 @@ func onApplicationCommandInteractionCreate(event *events.ApplicationCommandInter
 	guild_roles, err := event.Client().Rest().GetRoles(*event.GuildID())
 	if err != nil {
 		event.Client().Rest().UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.NewMessageUpdateBuilder().
-			SetContent(t("modules.set_color.errors.guild_roles", nil)).
+			SetContent(templates.Exec("modules.set_color.errors.guild_roles", nil)).
 			SetFlags(discord.MessageFlagEphemeral).
 			Build(),
 		)
@@ -112,7 +121,7 @@ out:
 			Permissions: &permissions,
 		}); err != nil {
 			event.Client().Rest().UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.NewMessageUpdateBuilder().
-				SetContent(t("modules.set_color.errors.role_update", nil)).
+				SetContent(templates.Exec("modules.set_color.errors.role_update", nil)).
 				SetFlags(discord.MessageFlagEphemeral).
 				Build(),
 			)
@@ -135,7 +144,7 @@ out:
 				slog.Any("guild_id", *event.GuildID()),
 			)
 			event.Client().Rest().UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.NewMessageUpdateBuilder().
-				SetContent(t("modules.set_color.errors.role_create", nil)).
+				SetContent(templates.Exec("modules.set_color.errors.role_create", nil)).
 				SetFlags(discord.MessageFlagEphemeral).
 				Build(),
 			)
@@ -149,7 +158,7 @@ out:
 				slog.Any("user_id", event.User().ID),
 			)
 			event.Client().Rest().UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.NewMessageUpdateBuilder().
-				SetContent(t("modules.set_color.errors.role_add_member", nil)).
+				SetContent(templates.Exec("modules.set_color.errors.role_add_member", nil)).
 				SetFlags(discord.MessageFlagEphemeral).
 				Build(),
 			)
@@ -159,7 +168,7 @@ out:
 
 	event.Client().Rest().UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.NewMessageUpdateBuilder().
 		SetEmbeds(discord.Embed{
-			Title: t("modules.set_color.success", map[string]string{
+			Title: templates.Exec("modules.set_color.success", map[string]string{
 				"Color": "#" + color_str,
 			}),
 			Color: color,
@@ -168,8 +177,12 @@ out:
 		Build(),
 	)
 
+	if config.Config.Modules.SetColor.LogChannelId == nil {
+		return
+	}
+
 	now := time.Now()
-	if _, err := event.Client().Rest().CreateMessage(snowflake.MustParse(staticConfig.SetColorLogChannel), discord.MessageCreate{
+	if _, err := event.Client().Rest().CreateMessage(*config.Config.Modules.SetColor.LogChannelId, discord.MessageCreate{
 		Embeds: []discord.Embed{
 			{
 				Description: event.Member().Mention(),
@@ -180,7 +193,7 @@ out:
 	}); err != nil {
 		slog.Error("error logging setcolor",
 			slog.Any("error", err),
-			slog.String("channel_id", staticConfig.SetColorLogChannel),
+			slog.Any("channel_id", *config.Config.Modules.SetColor.LogChannelId),
 		)
 	}
 }
