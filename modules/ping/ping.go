@@ -16,7 +16,7 @@ func Init() {
 	modules.RegisterModule(modules.Module{
 		Name: "ping",
 		Init: func() []bot.ConfigOpt {
-			if config.Config.Modules.UserLog.ChannelId == nil {
+			if config.Config.Discord.AuthorId == nil {
 				slog.Warn("`ping` module enabled but missing author id (skipping init)")
 				return []bot.ConfigOpt{}
 			}
