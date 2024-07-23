@@ -105,7 +105,7 @@ func onApplicationCommandInteractionCreate(event *events.ApplicationCommandInter
 out:
 	for _, role := range guild_roles {
 		for _, member_role_id := range event.Member().RoleIDs {
-			if role.ID == member_role_id && role.Name[:len("color/")] == "color/" {
+			if role.ID == member_role_id && strings.HasPrefix(role.Name, "color/") {
 				color_role = &role
 				break out
 			}
