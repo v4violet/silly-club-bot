@@ -8,6 +8,7 @@ require (
 	github.com/disgoorg/snowflake/v2 v2.0.3
 	github.com/joho/godotenv v1.5.1
 	github.com/sethvargo/go-envconfig v1.1.0
+	go.uber.org/automaxprocs v1.5.3
 )
 
 require (

@@ -27,6 +27,7 @@ import (
 	"github.com/v4violet/silly-club-bot/modules/voice_log"
 	"github.com/v4violet/silly-club-bot/modules/vote_pin"
 	"github.com/v4violet/silly-club-bot/templates"
+	"go.uber.org/automaxprocs/maxprocs"
 )
 
 func init() {
@@ -43,6 +44,10 @@ func init() {
 	logger.SetReportTimestamp(true)
 
 	slog.SetDefault(slog.New(logger))
+
+	if _, err := maxprocs.Set(); err != nil {
+		slog.Warn("failed to set GOMAXPROCS", slog.Any("error", err))
+	}
 
 	templates.Init()
 
