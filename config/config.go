@@ -12,8 +12,9 @@ import (
 
 var Config struct {
 	Discord struct {
-		Token   string       `env:"TOKEN,required"`
-		GuildId snowflake.ID `env:"GUILD_ID,required"`
+		Token    string        `env:"TOKEN,required"`
+		GuildId  snowflake.ID  `env:"GUILD_ID,required"`
+		AuthorId *snowflake.ID `env:"AUTHOR_ID,noinit"`
 	} `env:",prefix=DISCORD_"`
 
 	Modules struct {
