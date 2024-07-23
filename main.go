@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -32,9 +31,6 @@ import (
 
 func init() {
 	config.Init()
-	fmt.Println("config")
-
-	slog.SetLogLoggerLevel(config.Config.LogLevel)
 
 	logger := log.New(os.Stdout)
 
@@ -44,6 +40,8 @@ func init() {
 	logger.SetReportTimestamp(true)
 
 	slog.SetDefault(slog.New(logger))
+
+	slog.SetLogLoggerLevel(config.Config.LogLevel)
 
 	if _, err := maxprocs.Set(); err != nil {
 		slog.Warn("failed to set GOMAXPROCS", slog.Any("error", err))
