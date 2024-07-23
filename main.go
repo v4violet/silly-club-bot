@@ -106,7 +106,7 @@ func main() {
 		}),
 	}
 
-	if config.Config.GitRevision != nil {
+	if len(config.Config.GitRevision) >= 7 {
 		clientConfig = append(clientConfig, bot.WithGatewayConfigOpts(gateway.WithPresenceOpts(createStatus(nil))))
 	}
 

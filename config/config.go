@@ -51,7 +51,7 @@ var Config struct {
 	LogLevelRaw string `env:"LOG_LEVEL,default=INFO"`
 	LogLevel    slog.Level
 
-	GitRevision *string `env:"SOURCE_COMMIT,noinit"`
+	GitRevision string `env:"SOURCE_COMMIT"`
 }
 
 func Init() {
