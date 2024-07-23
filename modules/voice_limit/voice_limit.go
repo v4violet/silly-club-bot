@@ -16,6 +16,10 @@ func Init() {
 	modules.RegisterModule(modules.Module{
 		Name: "voice_limit",
 		Init: func() []bot.ConfigOpt {
+			if config.Config.Modules.UserLog.ChannelId == nil {
+				slog.Warn("`voice_limit` module enabled but missing channel id (skipping init)")
+				return []bot.ConfigOpt{}
+			}
 			return []bot.ConfigOpt{
 				bot.WithEventListenerFunc(func(event *events.GuildMemberJoin) { updateVoiceLimit(event.Client()) }),
 				bot.WithEventListenerFunc(func(event *events.GuildMemberLeave) { updateVoiceLimit(event.Client()) }),

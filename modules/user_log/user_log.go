@@ -16,6 +16,10 @@ func Init() {
 	modules.RegisterModule(modules.Module{
 		Name: "user_log",
 		Init: func() []bot.ConfigOpt {
+			if config.Config.Modules.UserLog.ChannelId == nil {
+				slog.Warn("`user_log` module enabled but missing channel id (skipping init)")
+				return []bot.ConfigOpt{}
+			}
 			return []bot.ConfigOpt{
 				bot.WithEventListenerFunc(onGuildMemberJoin),
 				bot.WithEventListenerFunc(onGuildMemberLeave),
