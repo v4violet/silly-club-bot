@@ -15,6 +15,10 @@ func Init() {
 	modules.RegisterModule(modules.Module{
 		Name: "join_roles",
 		Init: func() []bot.ConfigOpt {
+			if len(config.Config.Modules.JoinRoles.UserRoleIds) <= 0 && len(config.Config.Modules.JoinRoles.BotRoleIds) <= 0 {
+				slog.Warn("`join_roles` module enabled but no user or bot role ids defined (skipping init)")
+				return []bot.ConfigOpt{}
+			}
 			return []bot.ConfigOpt{
 				bot.WithEventListenerFunc(onGuildMemberJoin),
 				bot.WithGatewayConfigOpts(gateway.WithIntents(gateway.IntentGuildMembers)),
