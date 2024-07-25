@@ -20,6 +20,7 @@ import (
 	"github.com/v4violet/silly-club-bot/modules/auto_react"
 	"github.com/v4violet/silly-club-bot/modules/join_roles"
 	"github.com/v4violet/silly-club-bot/modules/ping"
+	"github.com/v4violet/silly-club-bot/modules/poll_pin"
 	"github.com/v4violet/silly-club-bot/modules/random_react"
 	"github.com/v4violet/silly-club-bot/modules/set_color"
 	"github.com/v4violet/silly-club-bot/modules/user_log"
@@ -53,6 +54,7 @@ func init() {
 	auto_react.Init()
 	join_roles.Init()
 	ping.Init()
+	poll_pin.Init()
 	random_react.Init()
 	set_color.Init()
 	user_log.Init()
