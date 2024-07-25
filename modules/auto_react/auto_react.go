@@ -56,14 +56,15 @@ func onMessageCreate(event *events.GuildMessageCreate) {
 		return
 	}
 	for regex, emojiId := range reactions {
-		if regex.MatchString(event.Message.Content) {
-			if err := event.Client().Rest().AddReaction(event.ChannelID, event.MessageID, emojiId); err != nil {
-				slog.Error("error adding reaction",
-					slog.Any("error", err),
-					slog.Any("channel_id", event.ChannelID),
-					slog.Any("message_id", event.MessageID),
-				)
-			}
+		if !regex.MatchString(event.Message.Content) {
+			continue
+		}
+		if err := event.Client().Rest().AddReaction(event.ChannelID, event.MessageID, emojiId); err != nil {
+			slog.Error("error adding reaction",
+				slog.Any("error", err),
+				slog.Any("channel_id", event.ChannelID),
+				slog.Any("message_id", event.MessageID),
+			)
 		}
 	}
 }

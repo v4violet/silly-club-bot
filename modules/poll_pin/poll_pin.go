@@ -25,29 +25,27 @@ func Init() {
 }
 
 func onMessageCreate(event *events.GuildMessageCreate) {
-	if event.Message.Author.Bot || event.GuildID != config.Config.Discord.GuildId {
+	if event.Message.Author.Bot || event.GuildID != config.Config.Discord.GuildId || event.Message.Poll == nil {
 		return
 	}
-	if event.Message.Poll != nil {
-		pins, err := event.Client().Rest().GetPinnedMessages(event.ChannelID)
-		if err != nil {
-			slog.Error("error listing channel pins")
-			return
+	pins, err := event.Client().Rest().GetPinnedMessages(event.ChannelID)
+	if err != nil {
+		slog.Error("error listing channel pins")
+		return
+	}
+	poll_pins := []discord.Message{}
+	for _, pin := range pins {
+		if pin.Poll != nil {
+			poll_pins = append(poll_pins, pin)
 		}
-		poll_pins := []discord.Message{}
-		for _, pin := range pins {
-			if pin.Poll != nil {
-				poll_pins = append(poll_pins, pin)
-			}
-		}
-		if len(poll_pins) > 5 {
-			slog.Warn("too many pinned polls", slog.Any("channel_id", event.ChannelID))
-			return
-		}
-		if err := event.Client().Rest().PinMessage(event.ChannelID, event.MessageID); err != nil {
-			slog.Error("error pinning poll message", slog.Any("error", err))
-			return
-		}
+	}
+	if len(poll_pins) > 5 {
+		slog.Warn("too many pinned polls", slog.Any("channel_id", event.ChannelID))
+		return
+	}
+	if err := event.Client().Rest().PinMessage(event.ChannelID, event.MessageID); err != nil {
+		slog.Error("error pinning poll message", slog.Any("error", err))
+		return
 	}
 }
 
