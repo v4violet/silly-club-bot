@@ -56,7 +56,7 @@ func onMessageUpdate(event *events.MessageUpdate) {
 		return
 	}
 	if event.Message.Poll != nil && event.Message.Poll.Results != nil && event.Message.Poll.Results.IsFinalized {
-		if err := event.Client().Rest().UnpinMessage(*event.Message.MessageReference.ChannelID, *event.Message.MessageReference.MessageID); err != nil {
+		if err := event.Client().Rest().UnpinMessage(event.ChannelID, event.MessageID); err != nil {
 			slog.Error("error unpinning poll message", slog.Any("error", err))
 			return
 		}
