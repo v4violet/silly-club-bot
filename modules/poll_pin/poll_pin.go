@@ -24,8 +24,8 @@ func Init() {
 	})
 }
 
-func onMessageCreate(event *events.MessageCreate) {
-	if event.Message.Author.Bot || event.GuildID == nil || config.Config.Discord.GuildId != *event.GuildID {
+func onMessageCreate(event *events.GuildMessageCreate) {
+	if event.Message.Author.Bot || event.GuildID != config.Config.Discord.GuildId {
 		return
 	}
 	if event.Message.Poll != nil {
@@ -51,8 +51,8 @@ func onMessageCreate(event *events.MessageCreate) {
 	}
 }
 
-func onMessageUpdate(event *events.MessageUpdate) {
-	if event.Message.Author.Bot || event.GuildID == nil || config.Config.Discord.GuildId != *event.GuildID {
+func onMessageUpdate(event *events.GuildMessageUpdate) {
+	if event.Message.Author.Bot || event.GuildID != config.Config.Discord.GuildId {
 		return
 	}
 	if event.Message.Poll != nil && event.Message.Poll.Results != nil && event.Message.Poll.Results.IsFinalized {

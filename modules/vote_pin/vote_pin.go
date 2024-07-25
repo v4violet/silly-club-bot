@@ -25,8 +25,8 @@ func Init() {
 	})
 }
 
-func onMessageReactionAdd(event *events.MessageReactionAdd) {
-	if event.Emoji.Name == nil || *event.Emoji.Name != pinEmoji || event.GuildID == nil || *event.GuildID != config.Config.Discord.GuildId {
+func onMessageReactionAdd(event *events.GuildMessageReactionAdd) {
+	if event.Emoji.Name == nil || *event.Emoji.Name != pinEmoji || event.GuildID != config.Config.Discord.GuildId {
 		return
 	}
 	message, err := event.Client().Rest().GetMessage(event.ChannelID, event.MessageID)

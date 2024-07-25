@@ -51,8 +51,8 @@ func Init() {
 	})
 }
 
-func onMessageCreate(event *events.MessageCreate) {
-	if event.Message.Author.Bot || event.GuildID == nil || config.Config.Discord.GuildId != *event.GuildID {
+func onMessageCreate(event *events.GuildMessageCreate) {
+	if event.Message.Author.Bot || event.GuildID != config.Config.Discord.GuildId {
 		return
 	}
 	for regex, emojiId := range reactions {
