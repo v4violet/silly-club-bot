@@ -2,7 +2,6 @@ package config
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"runtime/debug"
 
@@ -87,14 +86,15 @@ func Init() {
 	buildinfo, ok := debug.ReadBuildInfo()
 	if !ok {
 		slog.Warn("unable to read build info")
-	}
-	for _, kv := range buildinfo.Settings {
-		fmt.Printf("%s=%s\n", kv.Key, kv.Value)
-		if kv.Key == "vcs.revision" {
-			Config.GitRevision = &kv.Value
-			break
+	} else {
+		for _, kv := range buildinfo.Settings {
+			if kv.Key == "vcs.revision" {
+				Config.GitRevision = &kv.Value
+				break
+			}
 		}
 	}
+
 }
 
 func ModuleEnabled(module string) bool {
