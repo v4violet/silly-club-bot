@@ -64,8 +64,6 @@ func init() {
 }
 
 func main() {
-	slog.Debug("testing build times 0")
-
 	clientConfig := []bot.ConfigOpt{
 		bot.WithGatewayConfigOpts(
 			gateway.WithCompress(true),
