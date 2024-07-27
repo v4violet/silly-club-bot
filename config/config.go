@@ -2,6 +2,7 @@ package config
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"runtime/debug"
 
@@ -88,6 +89,7 @@ func Init() {
 		slog.Warn("unable to read build info")
 	}
 	for _, kv := range buildinfo.Settings {
+		fmt.Printf("%s=%s\n", kv.Key, kv.Value)
 		if kv.Key == "vcs.revision" {
 			Config.GitRevision = &kv.Value
 			break
