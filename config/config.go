@@ -3,6 +3,7 @@ package config
 import (
 	"context"
 	"log/slog"
+	"runtime/debug"
 
 	"github.com/charmbracelet/log"
 	"github.com/disgoorg/snowflake/v2"
@@ -80,6 +81,17 @@ func Init() {
 
 	for _, channelId := range Config.Modules.RandomReact.WhitelistedChannelIdsRaw {
 		Config.Modules.RandomReact.WhitelistedChannelIds[channelId] = true
+	}
+
+	buildinfo, ok := debug.ReadBuildInfo()
+	if !ok {
+		slog.Warn("unable to read build info")
+	}
+	for _, kv := range buildinfo.Settings {
+		if kv.Key == "vcs.revision" {
+			Config.GitRevision = &kv.Value
+			break
+		}
 	}
 }
 
