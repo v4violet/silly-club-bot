@@ -52,7 +52,7 @@ var Config struct {
 	LogLevelRaw string `env:"LOG_LEVEL,default=INFO"`
 	LogLevel    slog.Level
 
-	GitRevision *string `env:"SOURCE_COMMIT,noinit"`
+	GitRevision string `env:"SOURCE_COMMIT"`
 }
 
 func Init() {
@@ -89,7 +89,7 @@ func Init() {
 	} else {
 		for _, kv := range buildinfo.Settings {
 			if kv.Key == "vcs.revision" {
-				Config.GitRevision = &kv.Value
+				Config.GitRevision = kv.Value
 				break
 			}
 		}
@@ -99,9 +99,10 @@ func Init() {
 
 func ModuleEnabled(module string) bool {
 	_, allEnabled := Config.Modules.Enabled["all"]
+	_, allDisabled := Config.Modules.Disabled["all"]
 	_, enabled := Config.Modules.Enabled[module]
 	_, disabled := Config.Modules.Disabled[module]
-	if disabled {
+	if allDisabled || disabled {
 		return false
 	}
 	return allEnabled || enabled

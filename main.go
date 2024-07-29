@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/charmbracelet/log"
 	"github.com/disgoorg/disgo"
@@ -63,6 +64,17 @@ func init() {
 	vote_pin.Init()
 }
 
+func createStatus(latency *time.Duration) gateway.PresenceOpt {
+	if latency != nil {
+		l := latency.Round(time.Microsecond * 10)
+		latency = &l
+	}
+	return gateway.WithCustomActivity(templates.Exec("generic.status", map[string]any{
+		"GitRevision": config.Config.GitRevision,
+		"Latency":     latency,
+	}))
+}
+
 func main() {
 	clientConfig := []bot.ConfigOpt{
 		bot.WithGatewayConfigOpts(
@@ -77,17 +89,35 @@ func main() {
 				slog.String("user_id", event.User.ID.String()),
 				slog.String("user_tag", event.User.Tag()),
 			)
+			latency := event.Client().Gateway().Latency()
+			if err := event.Client().SetPresence(context.Background(), createStatus(&latency)); err != nil {
+				slog.Warn("error setting presence")
+			}
 		}),
 		bot.WithEventListenerFunc(func(event *events.GuildsReady) {
 			slog.Info("guilds ready", slog.Int("count", event.Client().Caches().GuildsLen()))
 		}),
 		bot.WithEventListenerFunc(func(event *events.Resumed) {
 			slog.Info("resumed", slog.Int("sequence", event.SequenceNumber()))
+			latency := event.Client().Gateway().Latency()
+			if err := event.Client().SetPresence(context.Background(), createStatus(&latency)); err != nil {
+				slog.Warn("error setting presence")
+			}
+		}),
+		bot.WithEventListenerFunc(func(event *events.HeartbeatAck) {
+			//latency calculation happens after event listener calls for some reason?
+			go func() {
+				time.Sleep(time.Millisecond * 10)
+				latency := event.Client().Gateway().Latency()
+				if err := event.Client().SetPresence(context.Background(), createStatus(&latency)); err != nil {
+					slog.Warn("error setting presence")
+				}
+			}()
 		}),
 	}
 
-	if config.Config.GitRevision != nil {
-		clientConfig = append(clientConfig, bot.WithGatewayConfigOpts(gateway.WithPresenceOpts(gateway.WithCustomActivity((*config.Config.GitRevision)[:7]))))
+	if len(config.Config.GitRevision) >= 7 {
+		clientConfig = append(clientConfig, bot.WithGatewayConfigOpts(gateway.WithPresenceOpts(createStatus(nil))))
 	}
 
 	enabledModules := []string{}
