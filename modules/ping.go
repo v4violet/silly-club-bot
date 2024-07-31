@@ -30,14 +30,16 @@ func init() {
 						Embeds: []discord.Embed{
 							discord.NewEmbedBuilder().
 								SetTitle("Pong!").
-								SetFields(discord.EmbedField{
-									Name:  "Gateway",
-									Value: event.Client().Gateway().Latency().String(),
-								}).
-								SetFields(discord.EmbedField{
-									Name:  "Rest",
-									Value: "Loading...",
-								}).
+								SetFields(
+									discord.EmbedField{
+										Name:  "Gateway",
+										Value: event.Client().Gateway().Latency().String(),
+									},
+									discord.EmbedField{
+										Name:  "Rest",
+										Value: "Loading...",
+									},
+								).
 								SetColor(0xffff00).
 								Build(),
 						},
@@ -61,14 +63,16 @@ func init() {
 						Embeds: &[]discord.Embed{
 							discord.NewEmbedBuilder().
 								SetTitle("Pong!").
-								SetFields(discord.EmbedField{
-									Name:  "Gateway",
-									Value: event.Client().Gateway().Latency().String(),
-								}).
-								SetFields(discord.EmbedField{
-									Name:  "Rest",
-									Value: rest_latency.String(),
-								}).
+								SetFields(
+									discord.EmbedField{
+										Name:  "Gateway",
+										Value: event.Client().Gateway().Latency().String(),
+									},
+									discord.EmbedField{
+										Name:  "Rest",
+										Value: rest_latency.String(),
+									},
+								).
 								SetColor(0x00ff00).
 								Build(),
 						},
