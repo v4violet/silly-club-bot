@@ -1,5 +1,7 @@
 FROM golang:1.22.5-alpine AS builder
 
+ARG BUILD_MODULES=all
+
 WORKDIR /app
 
 RUN apk update
