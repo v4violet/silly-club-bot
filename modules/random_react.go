@@ -20,7 +20,7 @@ var RandomReactConfig struct {
 	Percentage float64 `env:"MODULES_RANDOM_REACT_PERCENTAGE,default=0.01"`
 	Emoji      string  `env:"MODULES_RANDOM_REACT_EMOJI,required"`
 
-	LogChannel snowflake.ID `env:"MODULES_RANDOM_REACT_WHITELISTED_CHANNELS,required"`
+	LogChannel snowflake.ID `env:"MODULES_RANDOM_REACT_LOG_CHANNEL,required"`
 
 	WhitelistedChannelsRaw []snowflake.ID `env:"MODULES_RANDOM_REACT_WHITELISTED_CHANNELS"`
 	WhitelistedChannelIds  map[snowflake.ID]bool
