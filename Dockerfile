@@ -1,7 +1,5 @@
 FROM golang:1.22.5-alpine AS builder
 
-ARG BUILD_MODULES=all
-
 WORKDIR /app
 
 RUN apk update
@@ -25,6 +23,8 @@ ENV CGO_ENABLED=0
 ENV GOOS=linux
 
 ENV BUILD_STATIC=true
+
+ARG BUILD_MODULES=all
 
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \ 
