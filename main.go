@@ -9,60 +9,18 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/charmbracelet/log"
 	"github.com/disgoorg/disgo"
 	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/cache"
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/events"
 	"github.com/disgoorg/disgo/gateway"
+	"github.com/v4violet/silly-club-bot/build"
 	"github.com/v4violet/silly-club-bot/config"
 	"github.com/v4violet/silly-club-bot/modules"
-	"github.com/v4violet/silly-club-bot/modules/auto_react"
-	"github.com/v4violet/silly-club-bot/modules/join_roles"
-	"github.com/v4violet/silly-club-bot/modules/ping"
-	"github.com/v4violet/silly-club-bot/modules/poll_pin"
-	"github.com/v4violet/silly-club-bot/modules/random_react"
-	"github.com/v4violet/silly-club-bot/modules/set_color"
-	"github.com/v4violet/silly-club-bot/modules/user_log"
-	"github.com/v4violet/silly-club-bot/modules/voice_limit"
-	"github.com/v4violet/silly-club-bot/modules/voice_log"
-	"github.com/v4violet/silly-club-bot/modules/vote_pin"
 	"github.com/v4violet/silly-club-bot/templates"
-	"go.uber.org/automaxprocs/maxprocs"
+	_ "go.uber.org/automaxprocs"
 )
-
-func init() {
-	config.Init()
-
-	logger := log.New(os.Stdout)
-
-	logger.SetLevel(log.Level(config.Config.LogLevel))
-
-	logger.SetReportCaller(true)
-	logger.SetReportTimestamp(true)
-
-	slog.SetDefault(slog.New(logger))
-
-	slog.SetLogLoggerLevel(config.Config.LogLevel)
-
-	if _, err := maxprocs.Set(); err != nil {
-		slog.Warn("failed to set GOMAXPROCS", slog.Any("error", err))
-	}
-
-	templates.Init()
-
-	auto_react.Init()
-	join_roles.Init()
-	ping.Init()
-	poll_pin.Init()
-	random_react.Init()
-	set_color.Init()
-	user_log.Init()
-	voice_limit.Init()
-	voice_log.Init()
-	vote_pin.Init()
-}
 
 func createStatus(latency *time.Duration) gateway.PresenceOpt {
 	if latency != nil {
@@ -70,18 +28,19 @@ func createStatus(latency *time.Duration) gateway.PresenceOpt {
 		latency = &l
 	}
 	return gateway.WithCustomActivity(templates.Exec("generic.status", map[string]any{
-		"GitRevision": config.Config.GitRevision,
-		"Latency":     latency,
+		"Version": build.Version,
+		"Latency": latency,
 	}))
 }
 
 func main() {
-	clientConfig := []bot.ConfigOpt{
+	bot_config := []bot.ConfigOpt{
 		bot.WithGatewayConfigOpts(
 			gateway.WithCompress(true),
 			gateway.WithAutoReconnect(true),
 			gateway.WithLogger(slog.Default()),
 			gateway.WithIntents(gateway.IntentGuilds),
+			gateway.WithPresenceOpts(createStatus(nil)),
 		),
 		bot.WithCacheConfigOpts(cache.WithCaches(cache.FlagGuilds)),
 		bot.WithEventListenerFunc(func(event *events.Ready) {
@@ -91,7 +50,7 @@ func main() {
 			)
 			latency := event.Client().Gateway().Latency()
 			if err := event.Client().SetPresence(context.Background(), createStatus(&latency)); err != nil {
-				slog.Warn("error setting presence")
+				slog.Warn("error setting presence", slog.Any("error", err))
 			}
 		}),
 		bot.WithEventListenerFunc(func(event *events.GuildsReady) {
@@ -101,7 +60,7 @@ func main() {
 			slog.Info("resumed", slog.Int("sequence", event.SequenceNumber()))
 			latency := event.Client().Gateway().Latency()
 			if err := event.Client().SetPresence(context.Background(), createStatus(&latency)); err != nil {
-				slog.Warn("error setting presence")
+				slog.Warn("error setting presence", slog.Any("error", err))
 			}
 		}),
 		bot.WithEventListenerFunc(func(event *events.HeartbeatAck) {
@@ -110,31 +69,31 @@ func main() {
 				time.Sleep(time.Millisecond * 10)
 				latency := event.Client().Gateway().Latency()
 				if err := event.Client().SetPresence(context.Background(), createStatus(&latency)); err != nil {
-					slog.Warn("error setting presence")
+					slog.Warn("error setting presence", slog.Any("error", err))
 				}
 			}()
 		}),
 	}
 
-	if len(config.Config.GitRevision) >= 7 {
-		clientConfig = append(clientConfig, bot.WithGatewayConfigOpts(gateway.WithPresenceOpts(createStatus(nil))))
-	}
+	application_commands := []discord.ApplicationCommandCreate{}
 
-	enabledModules := []string{}
+	enabled_modules := []string{}
 
-	applicationCommands := []discord.ApplicationCommandCreate{}
-
-	for _, module := range modules.Modules {
-		if config.ModuleEnabled(module.Name) {
-			enabledModules = append(enabledModules, module.Name)
-			clientConfig = append(clientConfig, module.Init()...)
-			if module.ApplicationCommands != nil {
-				applicationCommands = append(applicationCommands, *module.ApplicationCommands...)
-			}
+	for k, v := range modules.Modules {
+		enabled_modules = append(enabled_modules, k)
+		module_config, err := v.Init()
+		if err != nil {
+			slog.Error("error initializing module", slog.String("module", k), slog.Any("error", err))
+			os.Exit(1)
+		}
+		bot_config = append(bot_config, module_config...)
+		if v.ApplicationCommands != nil {
+			application_commands = append(application_commands, *v.ApplicationCommands...)
 		}
 	}
 
-	client, err := disgo.New(config.Config.Discord.Token, clientConfig...)
+	client, err := disgo.New(config.Config.Discord.Token, bot_config...)
+
 	if err != nil {
 		slog.Error("error constructing bot client", slog.Any("error", err))
 		os.Exit(1)
@@ -142,13 +101,14 @@ func main() {
 	}
 
 	slog.Info("starting",
-		slog.String("enabled_modules", strings.Join(enabledModules, ",")),
+		slog.String("version", build.Version),
+		slog.Any("modules", strings.Join(enabled_modules, ",")),
 		slog.Any("intents", client.Gateway().Intents()),
 		slog.Any("caches", client.Caches().CacheFlags()),
 		slog.Any("guild_id", config.Config.Discord.GuildId),
 	)
 
-	if _, err := client.Rest().SetGuildCommands(client.ApplicationID(), config.Config.Discord.GuildId, applicationCommands); err != nil {
+	if _, err := client.Rest().SetGuildCommands(client.ApplicationID(), config.Config.Discord.GuildId, application_commands); err != nil {
 		slog.Error("error setting guild commands",
 			slog.Any("error", err),
 			slog.Any("application_id", client.ApplicationID()),
@@ -157,7 +117,7 @@ func main() {
 		os.Exit(1)
 		return
 	}
-	slog.Info("successfully set guild commands", slog.Int("command_count", len(applicationCommands)))
+	slog.Info("set guild commands", slog.Int("command_count", len(application_commands)))
 
 	if err := client.OpenGateway(context.Background()); err != nil {
 		slog.Error("error opening gateway", slog.Any("error", err))

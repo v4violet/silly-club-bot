@@ -13,8 +13,7 @@ var templatesFs embed.FS
 
 var Template *template.Template
 
-func Init() {
-	slog.Info("loading templates")
+func init() {
 	tmpl, err := template.ParseFS(templatesFs, "*.tmpl", "*/*.tmpl")
 	if err != nil {
 		slog.Error("error parsing templates", slog.Any("error", err))

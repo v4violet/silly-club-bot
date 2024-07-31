@@ -1,0 +1,58 @@
+//go:build modules.all || modules.poll_pin
+
+package modules
+
+import (
+	"log/slog"
+
+	"github.com/disgoorg/disgo/bot"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/events"
+	"github.com/disgoorg/disgo/gateway"
+	"github.com/v4violet/silly-club-bot/config"
+)
+
+func init() {
+	Modules["poll_pin"] = Module{
+		Init: func() ([]bot.ConfigOpt, error) {
+			return []bot.ConfigOpt{
+				bot.WithGatewayConfigOpts(gateway.WithIntents(gateway.IntentGuildMessages)),
+				bot.WithEventListenerFunc(func(event *events.GuildMessageCreate) {
+					if event.Message.Author.Bot || event.GuildID != config.Config.Discord.GuildId || event.Message.Poll == nil {
+						return
+					}
+					pins, err := event.Client().Rest().GetPinnedMessages(event.ChannelID)
+					if err != nil {
+						slog.Error("error listing channel pins")
+						return
+					}
+					poll_pins := []discord.Message{}
+					for _, pin := range pins {
+						if pin.Poll != nil {
+							poll_pins = append(poll_pins, pin)
+						}
+					}
+					if len(poll_pins) > 5 {
+						slog.Warn("too many pinned polls", slog.Any("channel_id", event.ChannelID))
+						return
+					}
+					if err := event.Client().Rest().PinMessage(event.ChannelID, event.MessageID); err != nil {
+						slog.Error("error pinning poll message", slog.Any("error", err))
+						return
+					}
+				}),
+				bot.WithEventListenerFunc(func(event *events.GuildMessageUpdate) {
+					if event.Message.Author.Bot || event.GuildID != config.Config.Discord.GuildId {
+						return
+					}
+					if event.Message.Poll != nil && event.Message.Poll.Results != nil && event.Message.Poll.Results.IsFinalized {
+						if err := event.Client().Rest().UnpinMessage(event.ChannelID, event.MessageID); err != nil {
+							slog.Error("error unpinning poll message", slog.Any("error", err))
+							return
+						}
+					}
+				}),
+			}, nil
+		},
+	}
+}

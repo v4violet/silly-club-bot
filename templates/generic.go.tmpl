@@ -1,3 +1,3 @@
 {{define "generic.status" -}}
-{{if ge (len .GitRevision) 7 -}}{{slice .GitRevision 0 7}}{{end}}{{if .Latency }}{{if .GitRevision}} | {{end}}{{.Latency}}{{end}}
+{{.Version}}{{if .Latency}} | {{.Latency}}{{end}}
 {{- end}}
