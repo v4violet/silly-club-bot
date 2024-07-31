@@ -44,7 +44,7 @@ run: build
     {{out}}
 
 docker-build:
-    docker build -t silly-club-bot .
+    docker build --build-arg="BUILD_MODULES={{modules}}" -t silly-club-bot .
 
 docker-run: docker-build
     docker run --rm --env-file .env silly-club-bot
