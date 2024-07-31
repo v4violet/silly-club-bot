@@ -15,7 +15,7 @@ tags := replace(prepend("modules.", replace(modules, ",", " ")), " ", ",")
 
 ldflag_build_pkg := package_name + '/build'
 
-ldflag_version := '-X ' + ldflag_build_pkg + '.Version=' + datetime_utc('%F') + '+' + trim(shell('git rev-parse --short HEAD')) 
+ldflag_version := '-X ' + ldflag_build_pkg + '.Version=' + datetime_utc('%Y.%m.%d') + '+' + trim(shell('git rev-parse --short HEAD')) 
 
 ldflag_static := if static == "true" { "-w -s" } else { "" }
 
