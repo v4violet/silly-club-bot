@@ -23,6 +23,7 @@ var auto_reactions_raw = map[string]string{
 	"(?i)cucumber":              "cucumber:1237250194089971712",
 	"(?i)sus":                   "amogus:1144404244615659590",
 	"(?i)pipe":                  "metalPipe:1236853099360948255",
+	"(?i)bean":                  "🫘",
 }
 
 var auto_reactions = map[*regexp.Regexp]string{}
