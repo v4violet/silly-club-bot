@@ -13,8 +13,8 @@ import (
 )
 
 var auto_reactions_raw = map[string]string{
-	"(?i)cube(s)?":              "ChallengeCube:1144404212063666237",
-	"(?i)ball(s)?":              "ChallengeBall:1144404221815423097",
+	"(?i)cube":                  "ChallengeCube:1144404212063666237",
+	"(?i)ball":                  "ChallengeBall:1144404221815423097",
 	"(?i)(penis|cock|dick|cum)": "cum:1144596862075154562",
 	"(?i)(ch|chapter )2":        "ch2_wen:1144404092093997056",
 	"(?i)boy(s|kisser)":         "boykisser:1156664341286899772",
