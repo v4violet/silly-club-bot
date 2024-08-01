@@ -12,10 +12,14 @@ modules := env_var_or_default("BUILD_MODULES", "all")
 
 tags := replace(prepend("modules.", replace(modules, ",", " ")), " ", ",")
 
+git_pending_changes := trim(shell('git status --porcelain | wc -l'))
+
 
 ldflag_build_pkg := package_name + '/build'
 
-ldflag_version := '-X ' + ldflag_build_pkg + '.Version=' + datetime_utc('%Y.%m.%d') + '+' + trim(shell('git rev-parse --short HEAD')) 
+ldflag_version_suffix := if git_pending_changes == "0" { "+" + trim(shell('git rev-parse --short HEAD')) } else { "-dev" }
+
+ldflag_version := '-X ' + ldflag_build_pkg + '.Version=' + datetime_utc('%Y.%m.%d') + ldflag_version_suffix
 
 ldflag_static := if static == "true" { "-w -s" } else { "" }
 
