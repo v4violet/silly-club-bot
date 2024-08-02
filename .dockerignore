@@ -1,1 +1,8 @@
 .env
+.env.*
+.git/
+.dockerignore
+.gitignore
+dist/
+.vscode/
+Dockerfile

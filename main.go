@@ -15,23 +15,10 @@ import (
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/events"
 	"github.com/disgoorg/disgo/gateway"
-	"github.com/v4violet/silly-club-bot/build"
 	"github.com/v4violet/silly-club-bot/config"
 	"github.com/v4violet/silly-club-bot/modules"
-	"github.com/v4violet/silly-club-bot/templates"
 	_ "go.uber.org/automaxprocs"
 )
-
-func createStatus(latency *time.Duration) gateway.PresenceOpt {
-	if latency != nil {
-		l := latency.Round(time.Microsecond * 10)
-		latency = &l
-	}
-	return gateway.WithCustomActivity(templates.Exec("generic.status", map[string]any{
-		"Version": build.Version,
-		"Latency": latency,
-	}))
-}
 
 func main() {
 	bot_config := []bot.ConfigOpt{
@@ -40,7 +27,6 @@ func main() {
 			gateway.WithAutoReconnect(true),
 			gateway.WithLogger(slog.Default()),
 			gateway.WithIntents(gateway.IntentGuilds),
-			gateway.WithPresenceOpts(createStatus(nil)),
 		),
 		bot.WithCacheConfigOpts(cache.WithCaches(cache.FlagGuilds)),
 		bot.WithEventListenerFunc(func(event *events.Ready) {
@@ -48,8 +34,7 @@ func main() {
 				slog.String("user_id", event.User.ID.String()),
 				slog.String("user_tag", event.User.Tag()),
 			)
-			latency := event.Client().Gateway().Latency()
-			if err := event.Client().SetPresence(context.Background(), createStatus(&latency)); err != nil {
+			if err := event.Client().SetPresence(context.Background(), gateway.WithCustomActivity(event.Client().Gateway().Latency().Round(time.Microsecond*10).String())); err != nil {
 				slog.Warn("error setting presence", slog.Any("error", err))
 			}
 		}),
@@ -58,8 +43,7 @@ func main() {
 		}),
 		bot.WithEventListenerFunc(func(event *events.Resumed) {
 			slog.Info("resumed", slog.Int("sequence", event.SequenceNumber()))
-			latency := event.Client().Gateway().Latency()
-			if err := event.Client().SetPresence(context.Background(), createStatus(&latency)); err != nil {
+			if err := event.Client().SetPresence(context.Background(), gateway.WithCustomActivity(event.Client().Gateway().Latency().Round(time.Microsecond*10).String())); err != nil {
 				slog.Warn("error setting presence", slog.Any("error", err))
 			}
 		}),
@@ -67,8 +51,7 @@ func main() {
 			//latency calculation happens after event listener calls for some reason?
 			go func() {
 				time.Sleep(time.Millisecond * 10)
-				latency := event.Client().Gateway().Latency()
-				if err := event.Client().SetPresence(context.Background(), createStatus(&latency)); err != nil {
+				if err := event.Client().SetPresence(context.Background(), gateway.WithCustomActivity(event.Client().Gateway().Latency().Round(time.Microsecond*10).String())); err != nil {
 					slog.Warn("error setting presence", slog.Any("error", err))
 				}
 			}()
@@ -101,7 +84,6 @@ func main() {
 	}
 
 	slog.Info("starting",
-		slog.String("version", build.Version),
 		slog.Any("modules", strings.Join(enabled_modules, ",")),
 		slog.Any("intents", client.Gateway().Intents()),
 		slog.Any("caches", client.Caches().CacheFlags()),

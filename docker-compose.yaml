@@ -1,0 +1,16 @@
+services:
+  silly-club:
+    build: .
+    image: silly-club-bot-silly-club:latest
+    env_file:
+      - .env.silly-club
+    pull_policy: always
+  staging:
+    build:
+      context: .
+      args:
+        - BUILD_MODULES=${STAGING_BUILD_MODULES}
+    image: silly-club-bot-staging:latest
+    pull_policy: always
+    env_file:
+      - .env.staging
