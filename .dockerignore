@@ -1,6 +1,5 @@
 .env
 .env.*
-.git/
 .dockerignore
 .gitignore
 dist/

@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
+	"runtime/debug"
 	"strings"
 	"syscall"
 	"time"
@@ -20,6 +22,28 @@ import (
 	_ "go.uber.org/automaxprocs"
 )
 
+var commit = func() string {
+	buildinfo, ok := debug.ReadBuildInfo()
+	if ok {
+		for _, kv := range buildinfo.Settings {
+			if kv.Key == "vcs.revision" {
+				return kv.Value
+			}
+		}
+	}
+	return ""
+}()
+
+func setStatus(client bot.Client) {
+	activity := client.Gateway().Latency().Round(time.Microsecond * 10).String()
+	if len(commit) != 0 {
+		activity = fmt.Sprintf("%s | %s", commit[:7], activity)
+	}
+	if err := client.SetPresence(context.Background(), gateway.WithCustomActivity(activity)); err != nil {
+		slog.Warn("error setting presence", slog.Any("error", err))
+	}
+}
+
 func main() {
 	bot_config := []bot.ConfigOpt{
 		bot.WithGatewayConfigOpts(
@@ -34,26 +58,20 @@ func main() {
 				slog.String("user_id", event.User.ID.String()),
 				slog.String("user_tag", event.User.Tag()),
 			)
-			if err := event.Client().SetPresence(context.Background(), gateway.WithCustomActivity(event.Client().Gateway().Latency().Round(time.Microsecond*10).String())); err != nil {
-				slog.Warn("error setting presence", slog.Any("error", err))
-			}
+			setStatus(event.Client())
 		}),
 		bot.WithEventListenerFunc(func(event *events.GuildsReady) {
 			slog.Info("guilds ready", slog.Int("count", event.Client().Caches().GuildsLen()))
 		}),
 		bot.WithEventListenerFunc(func(event *events.Resumed) {
 			slog.Info("resumed", slog.Int("sequence", event.SequenceNumber()))
-			if err := event.Client().SetPresence(context.Background(), gateway.WithCustomActivity(event.Client().Gateway().Latency().Round(time.Microsecond*10).String())); err != nil {
-				slog.Warn("error setting presence", slog.Any("error", err))
-			}
+			setStatus(event.Client())
 		}),
 		bot.WithEventListenerFunc(func(event *events.HeartbeatAck) {
 			//latency calculation happens after event listener calls for some reason?
 			go func() {
 				time.Sleep(time.Millisecond * 10)
-				if err := event.Client().SetPresence(context.Background(), gateway.WithCustomActivity(event.Client().Gateway().Latency().Round(time.Microsecond*10).String())); err != nil {
-					slog.Warn("error setting presence", slog.Any("error", err))
-				}
+				setStatus(event.Client())
 			}()
 		}),
 	}
