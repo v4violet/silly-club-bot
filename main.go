@@ -52,6 +52,9 @@ func main() {
 			gateway.WithLogger(slog.Default()),
 			gateway.WithIntents(gateway.IntentGuilds),
 		),
+		bot.WithEventManagerConfigOpts(
+			bot.WithAsyncEventsEnabled(),
+		),
 		bot.WithCacheConfigOpts(cache.WithCaches(cache.FlagGuilds)),
 		bot.WithEventListenerFunc(func(event *events.Ready) {
 			slog.Info("ready",
