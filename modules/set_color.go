@@ -126,7 +126,7 @@ func init() {
 							}
 						}
 					}
-					color_str := strconv.FormatInt(int64(color_int), 16)
+					color_str := fmt.Sprintf("%06x", color_int)
 					role_name := fmt.Sprintf("color/#%s", color_str)
 					permissions := discord.PermissionsNone
 					if color_role != nil {
