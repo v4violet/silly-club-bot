@@ -6,13 +6,13 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"math"
 	"math/rand/v2"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/crazy3lf/colorconv"
 	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/events"
@@ -64,9 +64,18 @@ func init() {
 
 					data := event.SlashCommandInteractionData()
 					color_raw := strings.ToLower(data.String("color"))
-					var color int
+					var color_int int
 					if color_raw == "random" {
-						color = int(math.Round(rand.Float64() * 16777215))
+						r, g, b, err := colorconv.HSVToRGB(rand.Float64()*359, 100, 100)
+						if err != nil {
+							event.CreateMessage(discord.MessageCreate{
+								Content: templates.Exec("modules.set_color.errors.random_color", nil),
+								Flags:   discord.MessageFlagEphemeral,
+							})
+							slog.Error("error converting random color", slog.Any("error", err))
+							return
+						}
+						color_int = (0xFFFF * int(r)) + (0xFF * int(g)) + int(b)
 					} else {
 						color_string_matches := set_color_regex.FindStringSubmatch(color_raw)
 						if len(color_string_matches) < 2 {
@@ -89,7 +98,7 @@ func init() {
 							})
 							return
 						}
-						color = int(maybe_color)
+						color_int = int(maybe_color)
 					}
 
 					event.DeferCreateMessage(true)
@@ -117,13 +126,13 @@ func init() {
 							}
 						}
 					}
-					color_str := strconv.FormatInt(int64(color), 16)
+					color_str := strconv.FormatInt(int64(color_int), 16)
 					role_name := fmt.Sprintf("color/#%s", color_str)
 					permissions := discord.PermissionsNone
 					if color_role != nil {
 						if _, err := event.Client().Rest().UpdateRole(color_role.GuildID, color_role.ID, discord.RoleUpdate{
 							Name:        &role_name,
-							Color:       &color,
+							Color:       &color_int,
 							Permissions: &permissions,
 						}); err != nil {
 							event.Client().Rest().UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.NewMessageUpdateBuilder().
@@ -141,7 +150,7 @@ func init() {
 					} else {
 						role, err := event.Client().Rest().CreateRole(*event.GuildID(), discord.RoleCreate{
 							Name:        role_name,
-							Color:       color,
+							Color:       color_int,
 							Permissions: &permissions,
 						})
 						if err != nil {
@@ -177,7 +186,7 @@ func init() {
 							Title: templates.Exec("modules.set_color.success", map[string]string{
 								"Color": "#" + color_str,
 							}),
-							Color: color,
+							Color: color_int,
 						}).
 						SetFlags(discord.MessageFlagEphemeral).
 						Build(),
@@ -188,7 +197,7 @@ func init() {
 						Embeds: []discord.Embed{
 							{
 								Description: event.Member().Mention(),
-								Color:       color,
+								Color:       color_int,
 								Timestamp:   &now,
 							},
 						},
