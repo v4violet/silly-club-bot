@@ -66,7 +66,8 @@ func init() {
 					color_raw := strings.ToLower(data.String("color"))
 					var color_int int
 					if color_raw == "random" {
-						r, g, b, err := colorconv.HSVToRGB(rand.Float64()*360, 1, 1)
+						// generate random hue + saturation between 60% and 100%
+						r, g, b, err := colorconv.HSVToRGB(rand.Float64()*360, 0.6+(0.4*rand.Float64()), 1)
 						if err != nil {
 							event.CreateMessage(discord.MessageCreate{
 								Content: templates.Exec("modules.set_color.errors.random_color", nil),
