@@ -11,8 +11,29 @@
     },
     "settings": {
         "conventionalCommits.scopes": [
+            "workspace",
+            "justfile",
+            ".gitignore",
+            "go.mod",
+            "config",
+            "docker/Dockerfile",
+            "docker/.dockerignore",
+            "modules",
+            "modules/auto_react",
+            "modules/join_roles",
+            "modules/ping",
+            "modules/poll_pin",
             "modules/random_react",
-            "workspace"
+            "modules/set_color",
+            "modules/user_log",
+            "modules/voice_limit",
+            "modules/voice_log",
+            "modules/vote_pin",
+            "templates",
+            "templates/emoji",
+            "templates/modules/set_color",
+            "templates/modules/user_log",
+            "templates/modules/voice_log",
         ]
     }
 }
