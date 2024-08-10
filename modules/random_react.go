@@ -47,28 +47,30 @@ func init() {
 						return
 					}
 
-					_, channelWhitelisted := RandomReactConfig.WhitelistedChannelIds[event.ChannelID]
+					if _, channelWhitelisted := RandomReactConfig.WhitelistedChannelIds[event.ChannelID]; !channelWhitelisted {
+						return
+					}
 
-					if rand.Float64() <= (RandomReactConfig.Percentage/100) && channelWhitelisted {
-						go func() {
-							if err := event.Client().Rest().AddReaction(event.ChannelID, event.MessageID, RandomReactConfig.Emoji); err != nil {
-								slog.Error("error adding reaction",
-									slog.Any("error", err),
-									slog.Any("channel_id", event.ChannelID),
-									slog.Any("message_id", event.MessageID),
-								)
-								return
-							}
-							if _, err := event.Client().Rest().CreateMessage(RandomReactConfig.LogChannel, discord.MessageCreate{
-								Content: event.Message.JumpURL(),
-							}); err != nil {
-								slog.Error("error logging random reaction",
-									slog.Any("error", err),
-									slog.Any("channel_id", event.ChannelID),
-									slog.Any("message_id", event.MessageID),
-								)
-							}
-						}()
+					if rand.Float64() > (RandomReactConfig.Percentage / 100) {
+						return
+					}
+
+					if err := event.Client().Rest().AddReaction(event.ChannelID, event.MessageID, RandomReactConfig.Emoji); err != nil {
+						slog.Error("error adding reaction",
+							slog.Any("error", err),
+							slog.Any("channel_id", event.ChannelID),
+							slog.Any("message_id", event.MessageID),
+						)
+						return
+					}
+					if _, err := event.Client().Rest().CreateMessage(RandomReactConfig.LogChannel, discord.MessageCreate{
+						Content: event.Message.JumpURL(),
+					}); err != nil {
+						slog.Error("error logging random reaction",
+							slog.Any("error", err),
+							slog.Any("channel_id", event.ChannelID),
+							slog.Any("message_id", event.MessageID),
+						)
 					}
 				}),
 			}, nil
