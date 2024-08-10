@@ -34,6 +34,10 @@ func init() {
 				return nil, err
 			}
 
+			for _, channel := range RandomReactConfig.WhitelistedChannelsRaw {
+				RandomReactConfig.WhitelistedChannelIds[channel] = true
+			}
+
 			return []bot.ConfigOpt{
 				bot.WithGatewayConfigOpts(gateway.WithIntents(gateway.IntentGuildMessages)),
 				bot.WithEventListenerFunc(func(event *events.GuildMessageCreate) {
