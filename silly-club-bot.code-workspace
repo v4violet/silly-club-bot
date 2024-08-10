@@ -5,7 +5,14 @@
     "extensions": {
         "recommendations": [
             "golang.go",
-            "skellock.just"
+            "skellock.just",
+            "vivaxy.vscode-conventional-commits"
+        ]
+    },
+    "settings": {
+        "conventionalCommits.scopes": [
+            "modules/random_react",
+            "workspace"
         ]
     }
 }
