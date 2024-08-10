@@ -62,13 +62,15 @@ func init() {
 						}
 						parse_time += time.Since(start)
 						matched += 1
-						if err := event.Client().Rest().AddReaction(event.ChannelID, event.MessageID, emojiId); err != nil {
-							slog.Error("error adding reaction",
-								slog.Any("error", err),
-								slog.Any("channel_id", event.ChannelID),
-								slog.Any("message_id", event.MessageID),
-							)
-						}
+						go func() {
+							if err := event.Client().Rest().AddReaction(event.ChannelID, event.MessageID, emojiId); err != nil {
+								slog.Error("error adding reaction",
+									slog.Any("error", err),
+									slog.Any("channel_id", event.ChannelID),
+									slog.Any("message_id", event.MessageID),
+								)
+							}
+						}()
 					}
 					if matched > 0 {
 						slog.Debug("matched triggers", slog.Int("matches", matched), slog.Any("duration", parse_time))
