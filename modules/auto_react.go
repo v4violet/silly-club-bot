@@ -3,10 +3,14 @@
 package modules
 
 import (
+	"fmt"
 	"log/slog"
 	"regexp"
+	"strings"
+	"time"
 
 	"github.com/disgoorg/disgo/bot"
+	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/events"
 	"github.com/disgoorg/disgo/gateway"
 	"github.com/v4violet/silly-club-bot/config"
@@ -49,16 +53,40 @@ func init() {
 					if event.Message.Author.Bot || event.GuildID != config.Config.Discord.GuildId {
 						return
 					}
+					parse_time := time.Duration(0)
+					matched := 0
 					for regex, emojiId := range auto_reactions {
+						start := time.Now()
 						if !regex.MatchString(event.Message.Content) {
 							continue
 						}
+						parse_time += time.Since(start)
+						matched += 1
 						if err := event.Client().Rest().AddReaction(event.ChannelID, event.MessageID, emojiId); err != nil {
 							slog.Error("error adding reaction",
 								slog.Any("error", err),
 								slog.Any("channel_id", event.ChannelID),
 								slog.Any("message_id", event.MessageID),
 							)
+						}
+					}
+					if matched > 0 {
+						slog.Debug("matched triggers", slog.Int("matches", matched), slog.Any("duration", parse_time))
+						if strings.Index(strings.ToLower(event.Message.Content), "-debug") != -1 {
+							if _, err := event.Client().Rest().CreateMessage(event.ChannelID, discord.MessageCreate{
+								Content: fmt.Sprintf("matches: %v\nduration: %v", matched, parse_time),
+								MessageReference: &discord.MessageReference{
+									MessageID: &event.MessageID,
+									ChannelID: &event.ChannelID,
+									GuildID:   &event.GuildID,
+								},
+							}); err != nil {
+								slog.Error("error sending debug message",
+									slog.Any("error", err),
+									slog.Any("channel_id", event.ChannelID),
+									slog.Any("message_id", event.MessageID),
+								)
+							}
 						}
 					}
 				}),
