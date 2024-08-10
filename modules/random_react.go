@@ -34,6 +34,8 @@ func init() {
 				return nil, err
 			}
 
+			RandomReactConfig.WhitelistedChannelIds = make(map[snowflake.ID]bool)
+
 			for _, channel := range RandomReactConfig.WhitelistedChannelsRaw {
 				RandomReactConfig.WhitelistedChannelIds[channel] = true
 			}
