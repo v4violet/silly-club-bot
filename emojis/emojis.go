@@ -2,6 +2,7 @@ package emojis
 
 import (
 	"embed"
+	"errors"
 	"io/fs"
 	"path"
 	"strings"
@@ -23,7 +24,7 @@ var Emojis = map[string]*Emoji{}
 func Load(client bot.Client) error {
 	emojis_dir, err := emojiFs.ReadDir("./")
 	if err != nil {
-		return err
+		return errors.Join(errors.New("error opening embeded directory"), err)
 	}
 
 	for _, entry := range emojis_dir {
@@ -37,7 +38,7 @@ func Load(client bot.Client) error {
 	application_emojis, err := client.Rest().GetApplicationEmojis(client.ApplicationID())
 
 	if err != nil {
-		return err
+		return errors.Join(errors.New("error getting application emojis"), err)
 	}
 
 	for _, application_emoji := range application_emojis {
@@ -52,12 +53,12 @@ func Load(client bot.Client) error {
 		}
 		file, err := emojiFs.Open(v.Entry.Name())
 		if err != nil {
-			return err
+			return errors.Join(errors.New("error opening embeded file"), err)
 		}
 
 		icon, err := discord.NewIcon(discord.IconTypeUnknown, file)
 		if err != nil {
-			return err
+			return errors.Join(errors.New("error creating new discord icon"), err)
 		}
 
 		emoji, err := client.Rest().CreateApplicationEmoji(client.ApplicationID(), discord.EmojiCreate{
@@ -65,7 +66,7 @@ func Load(client bot.Client) error {
 			Image: *icon,
 		})
 		if err != nil {
-			return err
+			return errors.Join(errors.New("error creating application emoji"), err)
 		}
 		v.Discord = emoji
 	}
