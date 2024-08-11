@@ -4,6 +4,7 @@ import (
 	"embed"
 	"errors"
 	"io/fs"
+	"log/slog"
 	"path"
 	"strings"
 
@@ -33,6 +34,9 @@ func Load(client bot.Client) error {
 		}
 		ext := path.Ext(entry.Name())
 		if ext != ".png" && ext != ".jpg" && ext != ".jpeg" && ext != ".gif" {
+			if ext != ".go" {
+				slog.Warn("unsupported emoji file type", slog.String("file", "emojis/"+entry.Name()), slog.String("supported", "png,jpeg,gif"))
+			}
 			continue
 		}
 		Emojis[strings.TrimSuffix(entry.Name(), ext)] = &Emoji{
