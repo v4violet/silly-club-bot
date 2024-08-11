@@ -22,7 +22,7 @@ type Emoji struct {
 var Emojis = map[string]*Emoji{}
 
 func Load(client bot.Client) error {
-	emojis_dir, err := emojiFs.ReadDir("./")
+	emojis_dir, err := emojiFs.ReadDir(".")
 	if err != nil {
 		return errors.Join(errors.New("error opening embeded directory"), err)
 	}
@@ -56,7 +56,22 @@ func Load(client bot.Client) error {
 			return errors.Join(errors.New("error opening embeded file"), err)
 		}
 
-		icon, err := discord.NewIcon(discord.IconTypeUnknown, file)
+		var icon_type discord.IconType
+
+		switch path.Ext(v.Entry.Name()) {
+		case ".png":
+			icon_type = discord.IconTypePNG
+		case ".jpg":
+			icon_type = discord.IconTypeJPEG
+		case ".jpeg":
+			icon_type = discord.IconTypeJPEG
+		case ".gif":
+			icon_type = discord.IconTypeGIF
+		default:
+			icon_type = discord.IconTypeUnknown
+		}
+
+		icon, err := discord.NewIcon(icon_type, file)
 		if err != nil {
 			return errors.Join(errors.New("error creating new discord icon"), err)
 		}
