@@ -17,7 +17,7 @@ var templatesFs embed.FS
 var Template *template.Template
 
 func init() {
-	tmpl, err := template.ParseFS(templatesFs, "*.tmpl", "*/*.tmpl")
+	tmpl, err := template.ParseFS(templatesFs, "*/*.tmpl")
 	if err != nil {
 		slog.Error("error parsing templates", slog.Any("error", err))
 		os.Exit(1)
