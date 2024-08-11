@@ -30,7 +30,7 @@ func init() {
 
 func LoadEmojis() error {
 	for k, v := range emojis.Emojis {
-		tmpl, err := Template.New(fmt.Sprintf("emoji.%s", k)).Parse(v.Discord.Mention())
+		tmpl, err := Template.New(fmt.Sprintf("emojis.%s", k)).Parse(v.Discord.Mention())
 		if err != nil {
 			return err
 		}
