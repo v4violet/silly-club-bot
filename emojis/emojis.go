@@ -28,10 +28,15 @@ func Load(client bot.Client) error {
 	}
 
 	for _, entry := range emojis_dir {
-		if entry.Type().IsRegular() {
-			Emojis[strings.TrimSuffix(entry.Name(), path.Ext(entry.Name()))] = &Emoji{
-				Entry: entry,
-			}
+		if !entry.Type().IsRegular() {
+			continue
+		}
+		ext := path.Ext(entry.Name())
+		if ext != ".png" && ext != ".jpg" && ext != ".jpeg" && ext != ".gif" {
+			continue
+		}
+		Emojis[strings.TrimSuffix(entry.Name(), ext)] = &Emoji{
+			Entry: entry,
 		}
 	}
 
