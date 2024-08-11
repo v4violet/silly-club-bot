@@ -3,9 +3,12 @@ package templates
 import (
 	"bytes"
 	"embed"
+	"fmt"
 	"log/slog"
 	"os"
 	"text/template"
+
+	"github.com/v4violet/silly-club-bot/emojis"
 )
 
 //go:embed *
@@ -20,8 +23,20 @@ func init() {
 		os.Exit(1)
 		return
 	}
+
 	Template = tmpl
 	slog.Info("loaded templates")
+}
+
+func LoadEmojis() error {
+	for k, v := range emojis.Emojis {
+		tmpl, err := Template.New(fmt.Sprintf("emoji.%s", k)).Parse(v.Discord.Mention())
+		if err != nil {
+			return err
+		}
+		Template = tmpl
+	}
+	return nil
 }
 
 func Exec(ident string, data any) string {

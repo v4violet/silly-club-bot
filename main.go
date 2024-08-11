@@ -18,7 +18,9 @@ import (
 	"github.com/disgoorg/disgo/events"
 	"github.com/disgoorg/disgo/gateway"
 	"github.com/v4violet/silly-club-bot/config"
+	"github.com/v4violet/silly-club-bot/emojis"
 	"github.com/v4violet/silly-club-bot/modules"
+	"github.com/v4violet/silly-club-bot/templates"
 	_ "go.uber.org/automaxprocs"
 )
 
@@ -121,6 +123,18 @@ func main() {
 		return
 	}
 	slog.Info("set guild commands", slog.Int("command_count", len(application_commands)))
+
+	if err := emojis.Load(client); err != nil {
+		slog.Error("error setting application emojis", slog.Any("error", err), slog.Any("application_id", client.ApplicationID()))
+		os.Exit(1)
+		return
+	}
+
+	if err := templates.LoadEmojis(); err != nil {
+		slog.Error("error loading emojis into templates", slog.Any("error", err), slog.Any("application_id", client.ApplicationID()))
+		os.Exit(1)
+		return
+	}
 
 	if err := client.OpenGateway(context.Background()); err != nil {
 		slog.Error("error opening gateway", slog.Any("error", err))
