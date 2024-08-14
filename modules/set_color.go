@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"log/slog"
 	"math/rand/v2"
-	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
@@ -17,15 +15,18 @@ import (
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/events"
 	"github.com/disgoorg/snowflake/v2"
+	"github.com/mazznoer/csscolorparser"
 	"github.com/sethvargo/go-envconfig"
 	"github.com/v4violet/silly-club-bot/config"
 	"github.com/v4violet/silly-club-bot/templates"
 )
 
-var set_color_regex = regexp.MustCompile("^#?([[:xdigit:]]{6})")
-
 var SetColorConfig struct {
 	LogChannel snowflake.ID `env:"MODULES_SET_COLOR_LOG_CHANNEL,required"`
+}
+
+func rgbToInt(r, g, b uint8) int {
+	return (0xFFFF * int(r)) + (0xFF * int(g)) + int(b)
 }
 
 func init() {
@@ -63,9 +64,9 @@ func init() {
 					}
 
 					data := event.SlashCommandInteractionData()
-					color_raw := strings.ToLower(data.String("color"))
+					color_raw := data.String("color")
 					var color_int int
-					if color_raw == "random" {
+					if strings.ToLower(color_raw) == "random" {
 						// generate random hue + saturation between 60% and 100%
 						r, g, b, err := colorconv.HSVToRGB(rand.Float64()*360, 0.6+(0.4*rand.Float64()), 1)
 						if err != nil {
@@ -76,30 +77,18 @@ func init() {
 							slog.Error("error converting random color", slog.Any("error", err))
 							return
 						}
-						color_int = (0xFFFF * int(r)) + (0xFF * int(g)) + int(b)
+						color_int = rgbToInt(r, g, b)
 					} else {
-						color_string_matches := set_color_regex.FindStringSubmatch(color_raw)
-						if len(color_string_matches) < 2 {
-							event.CreateMessage(discord.MessageCreate{
-								Content: templates.Exec("modules.set_color.errors.invalid_color", nil),
-								Flags:   discord.MessageFlagEphemeral,
-							})
-							return
-						}
-						color_string := color_string_matches[1]
-						maybe_color, err := strconv.ParseInt(color_string, 16, 32)
+						color, err := csscolorparser.Parse(color_raw)
 						if err != nil {
-							slog.Error("error parsing color",
-								slog.Any("error", err),
-								slog.String("input", color_string),
-							)
 							event.CreateMessage(discord.MessageCreate{
 								Content: templates.Exec("modules.set_color.errors.invalid_color", nil),
 								Flags:   discord.MessageFlagEphemeral,
 							})
 							return
 						}
-						color_int = int(maybe_color)
+						r, g, b, _ := color.RGBA255()
+						color_int = rgbToInt(r, g, b)
 					}
 
 					event.DeferCreateMessage(true)
