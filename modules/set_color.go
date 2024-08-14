@@ -65,7 +65,7 @@ func init() {
 					}
 
 					data := event.SlashCommandInteractionData()
-					color_raw := data.String("color")
+					color_raw := strings.TrimSpace(data.String("color"))
 					var color csscolorparser.Color
 					if strings.ToLower(color_raw) == "random" {
 						color = csscolorparser.FromHsv(rand.Float64()*360, 0.6+(0.4*rand.Float64()), 1, 1)
