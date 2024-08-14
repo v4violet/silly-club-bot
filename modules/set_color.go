@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"log/slog"
 	"math/rand/v2"
+	"strconv"
 	"strings"
 	"time"
 
-	"github.com/crazy3lf/colorconv"
 	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/events"
@@ -25,8 +25,9 @@ var SetColorConfig struct {
 	LogChannel snowflake.ID `env:"MODULES_SET_COLOR_LOG_CHANNEL,required"`
 }
 
-func rgbToInt(r, g, b uint8) int {
-	return (0xFFFF * int(r)) + (0xFF * int(g)) + int(b)
+func colorToInt(color csscolorparser.Color) (int, error) {
+	color_int, err := strconv.ParseInt(color.HexString()[1:7], 16, 32)
+	return int(color_int), err
 }
 
 func init() {
@@ -65,21 +66,11 @@ func init() {
 
 					data := event.SlashCommandInteractionData()
 					color_raw := data.String("color")
-					var color_int int
+					var color csscolorparser.Color
 					if strings.ToLower(color_raw) == "random" {
-						// generate random hue + saturation between 60% and 100%
-						r, g, b, err := colorconv.HSVToRGB(rand.Float64()*360, 0.6+(0.4*rand.Float64()), 1)
-						if err != nil {
-							event.CreateMessage(discord.MessageCreate{
-								Content: templates.Exec("modules.set_color.errors.random_color", nil),
-								Flags:   discord.MessageFlagEphemeral,
-							})
-							slog.Error("error converting random color", slog.Any("error", err))
-							return
-						}
-						color_int = rgbToInt(r, g, b)
+						color = csscolorparser.FromHsv(rand.Float64()*360, 0.6+(0.4*rand.Float64()), 1, 1)
 					} else {
-						color, err := csscolorparser.Parse(color_raw)
+						parsed_color, err := csscolorparser.Parse(color_raw)
 						if err != nil {
 							event.CreateMessage(discord.MessageCreate{
 								Content: templates.Exec("modules.set_color.errors.invalid_color", nil),
@@ -87,8 +78,7 @@ func init() {
 							})
 							return
 						}
-						r, g, b, _ := color.RGBA255()
-						color_int = rgbToInt(r, g, b)
+						color = parsed_color
 					}
 
 					event.DeferCreateMessage(true)
@@ -116,8 +106,22 @@ func init() {
 							}
 						}
 					}
-					color_str := fmt.Sprintf("%06x", color_int)
-					role_name := fmt.Sprintf("color/#%s", color_str)
+					color_str := color.HexString()
+					color_int, err := colorToInt(color)
+					if err != nil {
+						event.Client().Rest().UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.NewMessageUpdateBuilder().
+							SetContent(templates.Exec("modules.set_color.errors.color_convert", nil)).
+							SetFlags(discord.MessageFlagEphemeral).
+							Build(),
+						)
+						slog.Error("error converting color",
+							slog.Any("error", err),
+							slog.Any("guild_id", *event.GuildID()),
+							slog.String("color", color.HexString()),
+						)
+						return
+					}
+					role_name := fmt.Sprintf("color/%s", color_str)
 					permissions := discord.PermissionsNone
 					if color_role != nil {
 						if _, err := event.Client().Rest().UpdateRole(color_role.GuildID, color_role.ID, discord.RoleUpdate{
@@ -174,7 +178,7 @@ func init() {
 					event.Client().Rest().UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.NewMessageUpdateBuilder().
 						SetEmbeds(discord.Embed{
 							Title: templates.Exec("modules.set_color.success", map[string]string{
-								"Color": "#" + color_str,
+								"Color": color_str,
 							}),
 							Color: color_int,
 						}).
