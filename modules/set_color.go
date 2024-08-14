@@ -73,7 +73,7 @@ func init() {
 						parsed_color, err := csscolorparser.Parse(color_raw)
 						if err != nil {
 							event.CreateMessage(discord.MessageCreate{
-								Content: templates.Exec("modules.set_color.errors.invalid_color", nil),
+								Content: err.Error(),
 								Flags:   discord.MessageFlagEphemeral,
 							})
 							return
