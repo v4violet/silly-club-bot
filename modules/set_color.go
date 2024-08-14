@@ -25,8 +25,11 @@ var SetColorConfig struct {
 	LogChannel snowflake.ID `env:"MODULES_SET_COLOR_LOG_CHANNEL,required"`
 }
 
-func colorToInt(color csscolorparser.Color) (int, error) {
+func colorToInt(color csscolorparser.Color, allow_black bool) (int, error) {
 	color_int, err := strconv.ParseInt(color.HexString()[1:7], 16, 32)
+	if color_int == 0 && !allow_black {
+		color_int = 0x000100
+	}
 	return int(color_int), err
 }
 
@@ -38,9 +41,10 @@ func init() {
 				Description: "set your custom role color",
 				Options: []discord.ApplicationCommandOption{
 					discord.ApplicationCommandOptionString{
-						Name:        "color",
-						Description: "hex color",
-						Required:    true,
+						Name:         "color",
+						Description:  "css color",
+						Required:     true,
+						Autocomplete: true,
 					},
 				},
 			},
@@ -52,6 +56,23 @@ func init() {
 			}
 
 			return []bot.ConfigOpt{
+				bot.WithEventListenerFunc(func(event *events.AutocompleteInteractionCreate) {
+					if event.GuildID() == nil || event.Data.CommandName != "setcolor" {
+						event.AutocompleteResult([]discord.AutocompleteChoice{})
+						return
+					}
+
+					event.AutocompleteResult([]discord.AutocompleteChoice{
+						discord.AutocompleteChoiceString{
+							Name:  "random",
+							Value: "random",
+						},
+						discord.AutocompleteChoiceString{
+							Name:  "default",
+							Value: "default",
+						},
+					})
+				}),
 				bot.WithEventListenerFunc(func(event *events.ApplicationCommandInteractionCreate) {
 					if event.GuildID() == nil || event.Data.CommandName() != "setcolor" {
 						return
@@ -65,10 +86,14 @@ func init() {
 					}
 
 					data := event.SlashCommandInteractionData()
-					color_raw := strings.TrimSpace(data.String("color"))
+					color_raw := strings.ToLower(strings.TrimSpace(data.String("color")))
+					allow_black := false
 					var color csscolorparser.Color
-					if strings.ToLower(color_raw) == "random" {
+					if color_raw == "random" {
 						color = csscolorparser.FromHsv(rand.Float64()*360, 0.6+(0.4*rand.Float64()), 1, 1)
+					} else if color_raw == "default" {
+						allow_black = true
+						color = csscolorparser.Color{R: 0, G: 0, B: 0, A: 0}
 					} else {
 						parsed_color, err := csscolorparser.Parse(color_raw)
 						if err != nil {
@@ -107,7 +132,10 @@ func init() {
 						}
 					}
 					color_str := color.HexString()
-					color_int, err := colorToInt(color)
+					if allow_black {
+						color_str = "default"
+					}
+					color_int, err := colorToInt(color, allow_black)
 					if err != nil {
 						event.Client().Rest().UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.NewMessageUpdateBuilder().
 							SetContent(templates.Exec("modules.set_color.errors.color_convert", nil)).
