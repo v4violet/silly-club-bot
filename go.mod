@@ -3,7 +3,6 @@ module github.com/v4violet/silly-club-bot
 go 1.22.5
 
 require (
-	github.com/crazy3lf/colorconv v1.2.0
 	github.com/disgoorg/disgo v0.18.9
 	github.com/disgoorg/snowflake/v2 v2.0.3
 	github.com/mazznoer/csscolorparser v0.1.4
