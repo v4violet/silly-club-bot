@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"math/rand/v2"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -15,11 +16,165 @@ import (
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/events"
 	"github.com/disgoorg/snowflake/v2"
+	"github.com/lithammer/fuzzysearch/fuzzy"
 	"github.com/mazznoer/csscolorparser"
 	"github.com/sethvargo/go-envconfig"
 	"github.com/v4violet/silly-club-bot/config"
 	"github.com/v4violet/silly-club-bot/templates"
 )
+
+var validColorNames = []string{
+	"default",
+	"random",
+
+	"aliceblue",
+	"antiquewhite",
+	"aqua",
+	"aquamarine",
+	"azure",
+	"beige",
+	"bisque",
+	"black",
+	"blanchedalmond",
+	"blue",
+	"blueviolet",
+	"brown",
+	"burlywood",
+	"cadetblue",
+	"chartreuse",
+	"chocolate",
+	"coral",
+	"cornflowerblue",
+	"cornsilk",
+	"crimson",
+	"cyan",
+	"darkblue",
+	"darkcyan",
+	"darkgoldenrod",
+	"darkgray",
+	"darkgreen",
+	"darkgrey",
+	"darkkhaki",
+	"darkmagenta",
+	"darkolivegreen",
+	"darkorange",
+	"darkorchid",
+	"darkred",
+	"darksalmon",
+	"darkseagreen",
+	"darkslateblue",
+	"darkslategray",
+	"darkslategrey",
+	"darkturquoise",
+	"darkviolet",
+	"deeppink",
+	"deepskyblue",
+	"dimgray",
+	"dimgrey",
+	"dodgerblue",
+	"firebrick",
+	"floralwhite",
+	"forestgreen",
+	"fuchsia",
+	"gainsboro",
+	"ghostwhite",
+	"gold",
+	"goldenrod",
+	"gray",
+	"green",
+	"greenyellow",
+	"grey",
+	"honeydew",
+	"hotpink",
+	"indianred",
+	"indigo",
+	"ivory",
+	"khaki",
+	"lavender",
+	"lavenderblush",
+	"lawngreen",
+	"lemonchiffon",
+	"lightblue",
+	"lightcoral",
+	"lightcyan",
+	"lightgoldenrodyellowlightgray",
+	"lightgreen",
+	"lightgrey",
+	"lightpink",
+	"lightsalmon",
+	"lightseagreen",
+	"lightskyblue",
+	"lightslategray",
+	"lightslategrey",
+	"lightsteelblue",
+	"lightyellow",
+	"lime",
+	"limegreen",
+	"linen",
+	"magenta",
+	"maroon",
+	"mediumaquamarine",
+	"mediumblue",
+	"mediumorchid",
+	"mediumpurple",
+	"mediumseagreen",
+	"mediumslateblue",
+	"mediumspringgreen",
+	"mediumturquoise",
+	"mediumvioletred",
+	"midnightblue",
+	"mintcream",
+	"mistyrose",
+	"moccasin",
+	"navajowhite",
+	"navy",
+	"oldlace",
+	"olive",
+	"olivedrab",
+	"orange",
+	"orangered",
+	"orchid",
+	"palegoldenrod",
+	"palegreen",
+	"paleturquoise",
+	"palevioletred",
+	"papayawhip",
+	"peachpuff",
+	"peru",
+	"pink",
+	"plum",
+	"powderblue",
+	"purple",
+	"rebeccapurple",
+	"red",
+	"rosybrown",
+	"royalblue",
+	"saddlebrown",
+	"salmon",
+	"sandybrown",
+	"seagreen",
+	"seashell",
+	"sienna",
+	"silver",
+	"skyblue",
+	"slateblue",
+	"slategray",
+	"slategrey",
+	"snow",
+	"springgreen",
+	"steelblue",
+	"tan",
+	"teal",
+	"thistle",
+	"tomato",
+	"turquoise",
+	"violet",
+	"wheat",
+	"white",
+	"whitesmoke",
+	"yellow",
+	"yellowgreen",
+}
 
 var SetColorConfig struct {
 	LogChannel snowflake.ID `env:"MODULES_SET_COLOR_LOG_CHANNEL,required"`
@@ -31,6 +186,10 @@ func colorToInt(color csscolorparser.Color, allow_black bool) (int, error) {
 		color_int = 0x000100
 	}
 	return int(color_int), err
+}
+
+func randomColor() csscolorparser.Color {
+	return csscolorparser.FromHsv(rand.Float64()*360, 0.6+(0.4*rand.Float64()), 1, 1)
 }
 
 func init() {
@@ -57,21 +216,48 @@ func init() {
 
 			return []bot.ConfigOpt{
 				bot.WithEventListenerFunc(func(event *events.AutocompleteInteractionCreate) {
-					if event.GuildID() == nil || event.Data.CommandName != "setcolor" {
+					if event.GuildID() == nil || event.Data.CommandName != "setcolor" || event.Data.Focused().Name != "color" {
 						event.AutocompleteResult([]discord.AutocompleteChoice{})
 						return
 					}
 
-					event.AutocompleteResult([]discord.AutocompleteChoice{
-						discord.AutocompleteChoiceString{
+					choices := []discord.AutocompleteChoice{}
+
+					color := strings.ToLower(strings.TrimSpace(event.Data.String("color")))
+
+					if len(color) > 1 {
+						matches := fuzzy.RankFind(color, validColorNames)
+						sort.Sort(matches)
+						if len(matches) > 0 {
+							if matches[0].Target != color {
+								choices = append(choices, discord.AutocompleteChoiceString{
+									Name:  color,
+									Value: color,
+								})
+							}
+							for _, match := range matches {
+								choices = append(choices, discord.AutocompleteChoiceString{
+									Name:  match.Target,
+									Value: match.Target,
+								})
+							}
+						}
+					}
+
+					if len(choices) <= 0 {
+						choices = append(choices, discord.AutocompleteChoiceString{
+							Name:  color,
+							Value: color,
+						}, discord.AutocompleteChoiceString{
 							Name:  "random",
 							Value: "random",
-						},
-						discord.AutocompleteChoiceString{
+						}, discord.AutocompleteChoiceString{
 							Name:  "default",
 							Value: "default",
-						},
-					})
+						})
+					}
+
+					event.AutocompleteResult(choices)
 				}),
 				bot.WithEventListenerFunc(func(event *events.ApplicationCommandInteractionCreate) {
 					if event.GuildID() == nil || event.Data.CommandName() != "setcolor" {
@@ -90,7 +276,7 @@ func init() {
 					allow_black := false
 					var color csscolorparser.Color
 					if color_raw == "random" {
-						color = csscolorparser.FromHsv(rand.Float64()*360, 0.6+(0.4*rand.Float64()), 1, 1)
+						color = randomColor()
 					} else if color_raw == "default" {
 						allow_black = true
 						color = csscolorparser.Color{R: 0, G: 0, B: 0, A: 0}
