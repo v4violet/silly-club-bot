@@ -1,4 +1,4 @@
-//go:build modules.all || modules.echo
+//go:build modules.echo
 
 package modules
 

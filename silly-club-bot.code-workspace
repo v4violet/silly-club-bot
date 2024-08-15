@@ -31,10 +31,11 @@
             "modules/voice_limit",
             "modules/voice_log",
             "modules/vote_pin",
+            "modules/echo",
             "templates",
             "templates/modules/set_color",
             "templates/modules/user_log",
-            "templates/modules/voice_log",
+            "templates/modules/voice_log"
         ]
     }
 }
