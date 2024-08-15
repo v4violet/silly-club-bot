@@ -3,70 +3,77 @@
 package modules
 
 import (
-	"context"
 	"log/slog"
 
+	"github.com/caarlos0/env/v11"
 	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/events"
 	"github.com/disgoorg/disgo/gateway"
 	"github.com/disgoorg/snowflake/v2"
-	"github.com/sethvargo/go-envconfig"
-	"github.com/v4violet/silly-club-bot/config"
-	"github.com/v4violet/silly-club-bot/templates"
+	"github.com/v4violet/silly-club-bot/templateutils"
+	"go.uber.org/fx"
 )
 
-var UserLogConfig struct {
-	Channel snowflake.ID `env:"MODULES_USER_LOG_CHANNEL,required"`
+type UserLogConfig struct {
+	LogChannel snowflake.ID `env:"MODULES_USER_LOG_CHANNEL,required,notEmpty"`
 }
 
 func init() {
-	Modules["user_log"] = Module{
-		Init: func() ([]bot.ConfigOpt, error) {
-			snowflake.AllowUnquoted = true
-			if err := envconfig.Process(context.Background(), &UserLogConfig); err != nil {
-				return nil, err
-			}
+	modules = append(modules, fx.Module("modules/user_log",
+		fx.Provide(
+			env.ParseAs[UserLogConfig],
+			ProvideUserLog,
+		),
+		fx.Invoke(NewUserLog),
+	))
+}
 
-			return []bot.ConfigOpt{
-				bot.WithGatewayConfigOpts(gateway.WithIntents(gateway.IntentGuildMembers)),
-				bot.WithEventListenerFunc(func(event *events.GuildMemberJoin) {
-					if config.Config.Discord.GuildId != event.GuildID {
-						return
-					}
-					if _, err := event.Client().Rest().CreateMessage(UserLogConfig.Channel, discord.MessageCreate{
-						Content: templates.Exec("modules.user_log.join", map[string]string{
-							"User": event.Member.Mention(),
-						}),
-						AllowedMentions: &discord.AllowedMentions{
-							Parse: []discord.AllowedMentionType{},
-						},
-					}); err != nil {
-						slog.Error("error logging user join", slog.Any("error", err),
-							slog.Any("guild_id", event.GuildID),
-							slog.Any("user_id", event.Member.User.ID),
-						)
-					}
-				}),
-				bot.WithEventListenerFunc(func(event *events.GuildMemberLeave) {
-					if config.Config.Discord.GuildId != event.GuildID {
-						return
-					}
-					if _, err := event.Client().Rest().CreateMessage(UserLogConfig.Channel, discord.MessageCreate{
-						Content: templates.Exec("modules.user_log.leave", map[string]string{
-							"User": event.Member.Mention(),
-						}),
-						AllowedMentions: &discord.AllowedMentions{
-							Parse: []discord.AllowedMentionType{},
-						},
-					}); err != nil {
-						slog.Error("error logging user join", slog.Any("error", err),
-							slog.Any("guild_id", event.GuildID),
-							slog.Any("user_id", event.Member.User.ID),
-						)
-					}
-				}),
-			}, nil
+func ProvideUserLog() Results {
+	return Results{
+		Options: []bot.ConfigOpt{
+			bot.WithGatewayConfigOpts(gateway.WithIntents(gateway.IntentGuildMembers)),
 		},
 	}
+}
+
+func NewUserLog(p ParamsWithConfigAndTemplate[UserLogConfig]) {
+	p.Client.AddEventListeners(
+		bot.NewListenerFunc(func(event *events.GuildMemberJoin) {
+			if p.DiscordConfig.GuildId != event.GuildID {
+				return
+			}
+			if _, err := event.Client().Rest().CreateMessage(p.Config.LogChannel, discord.MessageCreate{
+				Content: templateutils.MustExecuteTemplateToString(p.Template, "modules.user_log.join", map[string]string{
+					"User": event.Member.Mention(),
+				}),
+				AllowedMentions: &discord.AllowedMentions{
+					Parse: []discord.AllowedMentionType{},
+				},
+			}); err != nil {
+				slog.Error("error logging user join", slog.Any("error", err),
+					slog.Any("guild_id", event.GuildID),
+					slog.Any("user_id", event.Member.User.ID),
+				)
+			}
+		}),
+		bot.NewListenerFunc(func(event *events.GuildMemberLeave) {
+			if p.DiscordConfig.GuildId != event.GuildID {
+				return
+			}
+			if _, err := event.Client().Rest().CreateMessage(p.Config.LogChannel, discord.MessageCreate{
+				Content: templateutils.MustExecuteTemplateToString(p.Template, "modules.user_log.leave", map[string]string{
+					"User": event.Member.Mention(),
+				}),
+				AllowedMentions: &discord.AllowedMentions{
+					Parse: []discord.AllowedMentionType{},
+				},
+			}); err != nil {
+				slog.Error("error logging user join", slog.Any("error", err),
+					slog.Any("guild_id", event.GuildID),
+					slog.Any("user_id", event.Member.User.ID),
+				)
+			}
+		}),
+	)
 }

@@ -1,50 +1,33 @@
 package templates
 
 import (
-	"bytes"
 	"embed"
+	"errors"
 	"fmt"
-	"log/slog"
-	"os"
 	"text/template"
 
 	"github.com/v4violet/silly-club-bot/emojis"
+	"go.uber.org/fx"
 )
 
 //go:embed *
 var templatesFs embed.FS
 
-var Template *template.Template
+var Module = fx.Module("templates", fx.Provide(NewTemplates))
 
-func init() {
+func NewTemplates(emojis *emojis.Emojis) (*template.Template, error) {
 	tmpl, err := template.ParseFS(templatesFs, "*/*.tmpl")
 	if err != nil {
-		slog.Error("error parsing templates", slog.Any("error", err))
-		os.Exit(1)
-		return
+		return nil, errors.Join(errors.New("failed to parsefs templates"), err)
 	}
 
-	Template = tmpl
-	slog.Info("loaded templates")
-}
-
-func LoadEmojis() error {
-	for k, v := range emojis.Emojis {
-		tmpl, err := Template.New(fmt.Sprintf("emojis.%s", k)).Parse(v.Discord.Mention())
+	for k, v := range *emojis {
+		emoji_tmpl, err := tmpl.New(fmt.Sprintf("emojis.%s", k)).Parse(v.Discord.Mention())
 		if err != nil {
-			return err
+			return nil, err
 		}
-		Template = tmpl
+		tmpl = emoji_tmpl
 	}
-	return nil
-}
 
-func Exec(ident string, data any) string {
-	var out bytes.Buffer
-	err := Template.ExecuteTemplate(&out, ident, data)
-	if err != nil {
-		panic(err)
-	}
-	outStr := out.String()
-	return outStr
+	return tmpl, nil
 }

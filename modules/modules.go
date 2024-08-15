@@ -1,27 +1,67 @@
 package modules
 
 import (
+	"text/template"
+
 	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/discord"
+	"github.com/v4violet/silly-club-bot/botmodule"
+	"go.uber.org/fx"
 )
 
-type Module struct {
-	Init                func() ([]bot.ConfigOpt, error)
-	ApplicationCommands *[]discord.ApplicationCommandCreate
+var modules = []fx.Option{}
+
+type Results struct {
+	fx.Out
+
+	Options []bot.ConfigOpt `group:"bot,flatten"`
 }
 
-var Modules = map[string]Module{}
+type ResultsWithApplicationCommands struct {
+	fx.Out
 
-func Init() ([]bot.ConfigOpt, error) {
-	config := []bot.ConfigOpt{}
+	Options            []bot.ConfigOpt                    `group:"bot,flatten"`
+	ApplicationCommand []discord.ApplicationCommandCreate `group:"bot,flatten"`
+}
 
-	for _, v := range Modules {
-		module_config, err := v.Init()
-		if err != nil {
-			return nil, err
-		}
-		config = append(config, module_config...)
-	}
+type ApplicationCommandsResults struct {
+	fx.Out
 
-	return config, nil
+	ApplicationCommand []discord.ApplicationCommandCreate `group:"bot,flatten"`
+}
+
+type Params struct {
+	fx.In
+
+	Client        bot.Client
+	DiscordConfig botmodule.DiscordConfig
+}
+
+type ParamsWithConfig[T any] struct {
+	fx.In
+
+	Client        bot.Client
+	DiscordConfig botmodule.DiscordConfig
+	Config        T
+}
+
+type ParamsWithTemplate struct {
+	fx.In
+
+	Client        bot.Client
+	DiscordConfig botmodule.DiscordConfig
+	Template      *template.Template
+}
+
+type ParamsWithConfigAndTemplate[T any] struct {
+	fx.In
+
+	Client        bot.Client
+	DiscordConfig botmodule.DiscordConfig
+	Config        T
+	Template      *template.Template
+}
+
+func NewModules() fx.Option {
+	return fx.Module("modules", modules...)
 }

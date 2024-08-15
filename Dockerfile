@@ -1,4 +1,4 @@
-FROM golang:1.22.5-alpine AS builder
+FROM golang:1.23.0-alpine AS builder
 
 WORKDIR /app
 
@@ -25,6 +25,10 @@ ENV GOOS=linux
 ENV BUILD_STATIC=true
 
 ARG BUILD_MODULES=all
+
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \ 
+    just test
 
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \ 

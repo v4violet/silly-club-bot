@@ -3,52 +3,57 @@
 package modules
 
 import (
-	"context"
 	"log/slog"
 
+	"github.com/caarlos0/env/v11"
 	"github.com/disgoorg/disgo/bot"
-	"github.com/disgoorg/disgo/cache"
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/events"
 	"github.com/disgoorg/disgo/gateway"
 	"github.com/disgoorg/snowflake/v2"
-	"github.com/sethvargo/go-envconfig"
-	"github.com/v4violet/silly-club-bot/config"
+	"go.uber.org/fx"
 )
 
-var VoiceLimitConfig struct {
-	Channel snowflake.ID `env:"MODULES_VOICE_LIMIT_CHANNEL,required"`
+type VoiceLimitConfig struct {
+	Channel snowflake.ID `env:"MODULES_VOICE_LIMIT_CHANNEL,required,notEmpty"`
 }
 
 func init() {
-	Modules["voice_limit"] = Module{
-		Init: func() ([]bot.ConfigOpt, error) {
-			snowflake.AllowUnquoted = true
-			if err := envconfig.Process(context.Background(), &VoiceLimitConfig); err != nil {
-				return nil, err
-			}
+	modules = append(modules, fx.Module("modules/voice_limig",
+		fx.Provide(
+			env.ParseAs[VoiceLimitConfig],
+			ProvideVoiceLimit,
+		),
+		fx.Invoke(NewVoiceLimit),
+	))
+}
 
-			return []bot.ConfigOpt{
-				bot.WithEventListenerFunc(func(event *events.GuildMemberJoin) { updateVoiceLimit(event.Client()) }),
-				bot.WithEventListenerFunc(func(event *events.GuildMemberLeave) { updateVoiceLimit(event.Client()) }),
-				bot.WithGatewayConfigOpts(gateway.WithIntents(gateway.IntentGuildMembers)),
-				bot.WithCacheConfigOpts(cache.WithCaches(cache.FlagGuilds)),
-			}, nil
+func ProvideVoiceLimit() Results {
+	return Results{
+		Options: []bot.ConfigOpt{
+			bot.WithGatewayConfigOpts(gateway.WithIntents(gateway.IntentGuildMembers)),
 		},
 	}
 }
 
-func updateVoiceLimit(client bot.Client) {
-	guild, found := client.Caches().Guild(config.Config.Discord.GuildId)
+func NewVoiceLimit(p ParamsWithConfig[VoiceLimitConfig]) {
+	p.Client.AddEventListeners(
+		bot.NewListenerFunc(func(event *events.GuildMemberJoin) { updateVoiceLimit(p) }),
+		bot.NewListenerFunc(func(event *events.GuildMemberLeave) { updateVoiceLimit(p) }),
+	)
+}
+
+func updateVoiceLimit(p ParamsWithConfig[VoiceLimitConfig]) {
+	guild, found := p.Client.Caches().Guild(p.DiscordConfig.GuildId)
 	if !found {
 		return
 	}
-	if _, err := client.Rest().UpdateChannel(VoiceLimitConfig.Channel, discord.GuildVoiceChannelUpdate{
+	if _, err := p.Client.Rest().UpdateChannel(p.Config.Channel, discord.GuildVoiceChannelUpdate{
 		UserLimit: &guild.MemberCount,
 	}); err != nil {
 		slog.Error("error updating voice limit channel",
 			slog.Any("error", err),
-			slog.Any("channel_id", VoiceLimitConfig.Channel),
+			slog.Any("channel_id", p.Config.Channel),
 		)
 	}
 }

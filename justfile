@@ -19,7 +19,9 @@ build_flags_tags := if tags == "" { "" } else { "-tags=" + quote(tags) }
 
 build_flags_out := "-o " + out
 
-build_flags := trim(build_flags_ldflags + " " + build_flags_tags) + " " + build_flags_out
+build_flags_test := trim(build_flags_ldflags + " " + build_flags_tags)
+
+build_flags := build_flags_test + " " + build_flags_out
 
 
 default:
@@ -27,6 +29,9 @@ default:
     
 tidy:
     go mod tidy
+
+test:
+    go test {{build_flags_test}}
 
 build:
     go build {{build_flags}}
