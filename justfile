@@ -44,6 +44,3 @@ docker-build:
 
 docker-run: docker-build
     docker run --rm --env-file .env silly-club-bot
-
-deploy:
-    docker compose -p=silly-club-bot --env-file .env.build up  -d --build --remove-orphans
