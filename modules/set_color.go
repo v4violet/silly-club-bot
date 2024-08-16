@@ -13,6 +13,7 @@ import (
 
 	"github.com/lithammer/fuzzysearch/fuzzy"
 	"github.com/mazznoer/csscolorparser"
+	"github.com/v4violet/silly-club-bot/templateutils"
 
 	"github.com/caarlos0/env/v11"
 	"github.com/disgoorg/disgo/bot"
@@ -299,7 +300,7 @@ func NewSetColor(p ParamsWithConfigAndTemplate[SetColorConfig]) {
 			guild_roles, err := event.Client().Rest().GetRoles(*event.GuildID())
 			if err != nil {
 				event.Client().Rest().UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.NewMessageUpdateBuilder().
-					SetContent("modules.set_color.errors.guild_roles").
+					SetContent(templateutils.MustExecuteTemplateToString(p.Template, "modules.set_color.errors.guild_roles", nil)).
 					SetFlags(discord.MessageFlagEphemeral).
 					Build(),
 				)
@@ -346,7 +347,7 @@ func NewSetColor(p ParamsWithConfigAndTemplate[SetColorConfig]) {
 					Permissions: &permissions,
 				}); err != nil {
 					event.Client().Rest().UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.NewMessageUpdateBuilder().
-						SetContent("modules.set_color.errors.role_update").
+						SetContent(templateutils.MustExecuteTemplateToString(p.Template, "modules.set_color.errors.role_update", nil)).
 						SetFlags(discord.MessageFlagEphemeral).
 						Build(),
 					)
@@ -369,7 +370,7 @@ func NewSetColor(p ParamsWithConfigAndTemplate[SetColorConfig]) {
 						slog.Any("guild_id", *event.GuildID()),
 					)
 					event.Client().Rest().UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.NewMessageUpdateBuilder().
-						SetContent("modules.set_color.errors.role_create").
+						SetContent(templateutils.MustExecuteTemplateToString(p.Template, "modules.set_color.errors.role_create", nil)).
 						SetFlags(discord.MessageFlagEphemeral).
 						Build(),
 					)
@@ -383,7 +384,7 @@ func NewSetColor(p ParamsWithConfigAndTemplate[SetColorConfig]) {
 						slog.Any("user_id", event.User().ID),
 					)
 					event.Client().Rest().UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.NewMessageUpdateBuilder().
-						SetContent("modules.set_color.errors.role_add_member").
+						SetContent(templateutils.MustExecuteTemplateToString(p.Template, "modules.set_color.errors.role_add_member", nil)).
 						SetFlags(discord.MessageFlagEphemeral).
 						Build(),
 					)
@@ -393,7 +394,9 @@ func NewSetColor(p ParamsWithConfigAndTemplate[SetColorConfig]) {
 
 			event.Client().Rest().UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.NewMessageUpdateBuilder().
 				SetEmbeds(discord.Embed{
-					Title: "modules.set_color.success",
+					Title: templateutils.MustExecuteTemplateToString(p.Template, "modules.set_color.success", map[string]string{
+						"Color": color_str,
+					}),
 					Color: color_int,
 				}).
 				SetFlags(discord.MessageFlagEphemeral).
