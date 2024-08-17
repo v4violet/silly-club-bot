@@ -63,7 +63,7 @@ func NewUserLog(p ParamsWithConfigAndTemplate[UserLogConfig]) {
 			}
 			if _, err := event.Client().Rest().CreateMessage(p.Config.LogChannel, discord.MessageCreate{
 				Content: templateutils.MustExecuteTemplateToString(p.Template, "modules.user_log.leave", map[string]string{
-					"User": event.Member.Mention(),
+					"User": event.User.Mention(),
 				}),
 				AllowedMentions: &discord.AllowedMentions{
 					Parse: []discord.AllowedMentionType{},
