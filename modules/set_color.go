@@ -288,19 +288,7 @@ func NewSetColor(p ParamsWithConfigAndTemplate[SetColorConfig]) {
 				allow_black = true
 				color = csscolorparser.Color{R: 0, G: 0, B: 0, A: 0}
 			} else if color_raw == "profile" {
-				accent_color := event.User().AccentColor
-				if accent_color == nil {
-					event.CreateMessage(discord.MessageCreate{
-						Content: templateutils.MustExecuteTemplateToString(p.Template, "modules.set_color.errors.no_accent", nil),
-						Flags:   discord.MessageFlagEphemeral,
-					})
-				}
-				color = csscolorparser.Color{
-					R: float64(((*accent_color)>>16)&0xff) / 255,
-					G: float64(((*accent_color)>>8)&0xff) / 255,
-					B: float64((*accent_color)&0xff) / 255,
-					A: 1,
-				}
+
 			} else {
 				parsed_color, err := csscolorparser.Parse(color_raw)
 				if err != nil {
@@ -314,6 +302,29 @@ func NewSetColor(p ParamsWithConfigAndTemplate[SetColorConfig]) {
 			}
 
 			event.DeferCreateMessage(true)
+
+			if color_raw == "profile" {
+				user, err := event.Client().Rest().GetUser(event.User().ID)
+				if err != nil {
+					event.CreateMessage(discord.MessageCreate{
+						Content: templateutils.MustExecuteTemplateToString(p.Template, "modules.set_color.errors.fetch_user", nil),
+						Flags:   discord.MessageFlagEphemeral,
+					})
+				}
+				accent_color := user.AccentColor
+				if accent_color == nil {
+					event.CreateMessage(discord.MessageCreate{
+						Content: templateutils.MustExecuteTemplateToString(p.Template, "modules.set_color.errors.no_accent_color", nil),
+						Flags:   discord.MessageFlagEphemeral,
+					})
+				}
+				color = csscolorparser.Color{
+					R: float64(((*accent_color)>>16)&0xff) / 255,
+					G: float64(((*accent_color)>>8)&0xff) / 255,
+					B: float64((*accent_color)&0xff) / 255,
+					A: 1,
+				}
+			}
 
 			guild_roles, err := event.Client().Rest().GetRoles(*event.GuildID())
 			if err != nil {
