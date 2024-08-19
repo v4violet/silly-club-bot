@@ -327,7 +327,7 @@ func NewSetColor(p ParamsWithConfigAndTemplate[SetColorConfig]) {
 			color_int, err := colorToInt(color, allow_black)
 			if err != nil {
 				event.Client().Rest().UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.NewMessageUpdateBuilder().
-					SetContent("").
+					SetContent(templateutils.MustExecuteTemplateToString(p.Template, "modules.set_color.errors.color_convert", nil)).
 					SetFlags(discord.MessageFlagEphemeral).
 					Build(),
 				)
