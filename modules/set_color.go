@@ -26,6 +26,7 @@ import (
 var validColorNames = []string{
 	"default",
 	"random",
+	"profile",
 
 	"aliceblue",
 	"antiquewhite",
@@ -261,6 +262,9 @@ func NewSetColor(p ParamsWithConfigAndTemplate[SetColorConfig]) {
 				}, discord.AutocompleteChoiceString{
 					Name:  "default",
 					Value: "default",
+				}, discord.AutocompleteChoiceString{
+					Name:  "profile",
+					Value: "profile",
 				})
 			}
 
@@ -283,6 +287,20 @@ func NewSetColor(p ParamsWithConfigAndTemplate[SetColorConfig]) {
 			} else if color_raw == "default" {
 				allow_black = true
 				color = csscolorparser.Color{R: 0, G: 0, B: 0, A: 0}
+			} else if color_raw == "profile" {
+				accent_color := event.User().AccentColor
+				if accent_color == nil {
+					event.CreateMessage(discord.MessageCreate{
+						Content: templateutils.MustExecuteTemplateToString(p.Template, "modules.set_color.errors.no_accent", nil),
+						Flags:   discord.MessageFlagEphemeral,
+					})
+				}
+				color = csscolorparser.Color{
+					R: float64(((*accent_color)>>16)&0xff) / 255,
+					G: float64(((*accent_color)>>8)&0xff) / 255,
+					B: float64((*accent_color)&0xff) / 255,
+					A: 1,
+				}
 			} else {
 				parsed_color, err := csscolorparser.Parse(color_raw)
 				if err != nil {
