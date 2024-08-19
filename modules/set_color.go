@@ -309,17 +309,19 @@ func NewSetColor(p ParamsWithConfigAndTemplate[SetColorConfig]) {
 			if color_raw == "profile" {
 				user, err := event.Client().Rest().GetUser(event.User().ID)
 				if err != nil {
-					event.CreateMessage(discord.MessageCreate{
-						Content: templateutils.MustExecuteTemplateToString(p.Template, "modules.set_color.errors.fetch_user", nil),
-						Flags:   discord.MessageFlagEphemeral,
-					})
+					event.Client().Rest().UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.NewMessageUpdateBuilder().
+						SetContent(templateutils.MustExecuteTemplateToString(p.Template, "modules.set_color.errors.fetch_user", nil)).
+						SetFlags(discord.MessageFlagEphemeral).Build(),
+					)
+					return
 				}
 				accent_color := user.AccentColor
 				if accent_color == nil {
-					event.CreateMessage(discord.MessageCreate{
-						Content: templateutils.MustExecuteTemplateToString(p.Template, "modules.set_color.errors.no_accent_color", nil),
-						Flags:   discord.MessageFlagEphemeral,
-					})
+					event.Client().Rest().UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.NewMessageUpdateBuilder().
+						SetContent(templateutils.MustExecuteTemplateToString(p.Template, "modules.set_color.errors.no_accent_color", nil)).
+						SetFlags(discord.MessageFlagEphemeral).Build(),
+					)
+					return
 				}
 				color = csscolorparser.Color{
 					R: float64(((*accent_color)>>16)&0xff) / 255,
