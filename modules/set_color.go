@@ -215,10 +215,6 @@ func colorToInt(color csscolorparser.Color, allow_black bool) (int, error) {
 	return int(color_int), err
 }
 
-func randomColor() csscolorparser.Color {
-	return csscolorparser.FromHsv(rand.Float64()*360, 0.6+(0.4*rand.Float64()), 1, 1)
-}
-
 func NewSetColor(p ParamsWithConfigAndTemplate[SetColorConfig]) {
 	p.Client.AddEventListeners(
 		bot.NewListenerFunc(func(event *events.AutocompleteInteractionCreate) {
@@ -286,7 +282,7 @@ func NewSetColor(p ParamsWithConfigAndTemplate[SetColorConfig]) {
 			allow_black := false
 			var color csscolorparser.Color
 			if color_raw == "random" {
-				color = randomColor()
+				color = csscolorparser.FromHsv(rand.Float64()*360, 0.6+(0.4*rand.Float64()), 1, 1)
 			} else if color_raw == "default" {
 				allow_black = true
 				color = csscolorparser.Color{R: 0, G: 0, B: 0, A: 0}
