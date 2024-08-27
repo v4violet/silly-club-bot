@@ -40,6 +40,7 @@ func NewVoiceLimit(p ParamsWithConfig[VoiceLimitConfig]) {
 	p.Client.AddEventListeners(
 		bot.NewListenerFunc(func(event *events.GuildMemberJoin) { updateVoiceLimit(p) }),
 		bot.NewListenerFunc(func(event *events.GuildMemberLeave) { updateVoiceLimit(p) }),
+		bot.NewListenerFunc(func(event *events.GuildsReady) { updateVoiceLimit(p) }),
 	)
 }
 
