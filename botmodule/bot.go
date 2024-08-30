@@ -119,7 +119,7 @@ func NewBot(p Params) (bot.Client, error) {
 
 	p.LC.Append(fx.StartStopHook(client.OpenGateway, func(ctx context.Context) {
 		slog.Info("shutting down")
-		client.SetPresence(context.Background(), gateway.WithOnlineStatus(discord.OnlineStatusInvisible))
+		client.SetPresence(ctx, gateway.WithOnlineStatus(discord.OnlineStatusInvisible))
 		client.Close(ctx)
 		slog.Info("goodbye")
 	}))
