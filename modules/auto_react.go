@@ -27,7 +27,7 @@ var auto_reactions_raw = map[string]string{
 	"(?i)pipe":                       "metalPipe:1236853099360948255",
 	"(?i)bean":                       "🫘",
 	"(?i)(hl|half(-|\\s)+life\\s*)3": "hl3_wen:1271947068503756872",
-	"(?i)ivy":                        "ivykisser:1280293322535075956",
+	"(?i)ivy":                        "ivykisser:1280588649276244038",
 }
 
 var auto_reactions = map[*regexp.Regexp]string{}
