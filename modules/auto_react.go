@@ -29,6 +29,7 @@ var auto_reactions_raw = map[string]string{
 	"(?i)(hl|half(-|\\s)+life\\s*)3": "hl3_wen:1271947068503756872",
 	"(?i)ivy":                        "ivykisser:1280588649276244038",
 	"(?i)trans":                      "transgender:1195201358383554681",
+	"(?i)horny":                      "panting:1144606367924097124",
 }
 
 var auto_reactions = map[*regexp.Regexp]string{}
