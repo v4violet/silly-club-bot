@@ -10,6 +10,8 @@ modules := env_var_or_default("BUILD_MODULES", "all")
 
 tags := replace(prepend("modules.", replace(modules, ",", " ")), " ", ",")
 
+fxlog := env_var_or_default("FX_LOG", "false")
+
 ldflags := if static == "true" { "-w -s" } else { "" }
 
 
@@ -36,8 +38,11 @@ test:
 build:
     go build {{build_flags}}
 
-run: build
-    {{out}}
+run *ARGS: build
+    {{out}} --fxlog={{fxlog}} {{ARGS}}
+
+graph file="graph.dot": build
+    {{out}} --fxgraph={{quote(file)}}
 
 docker-build:
     docker build --build-arg="BUILD_MODULES={{modules}}" -t silly-club-bot .

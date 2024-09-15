@@ -23,6 +23,10 @@ type DiscordConfig struct {
 	GuildId snowflake.ID `env:"DISCORD_GUILD_ID,required,notEmpty"`
 }
 
+type DryRun struct {
+	DryRun bool
+}
+
 var DefaultOptions = []bot.ConfigOpt{
 	bot.WithGatewayConfigOpts(
 		gateway.WithAutoReconnect(true),
@@ -51,6 +55,7 @@ type Params struct {
 	Options             []bot.ConfigOpt                    `group:"bot"`
 	ApplicationCommands []discord.ApplicationCommandCreate `group:"bot"`
 	Config              DiscordConfig
+	DryRun              DryRun
 	LC                  fx.Lifecycle
 }
 
@@ -105,24 +110,26 @@ func NewBot(p Params) (bot.Client, error) {
 		return nil, err
 	}
 
-	slog.Info("starting",
-		slog.Any("intents", client.Gateway().Intents()),
-		slog.Any("caches", client.Caches().CacheFlags()),
-		slog.Any("guild_id", p.Config.GuildId),
-	)
+	if !p.DryRun.DryRun {
+		slog.Info("starting",
+			slog.Any("intents", client.Gateway().Intents()),
+			slog.Any("caches", client.Caches().CacheFlags()),
+			slog.Any("guild_id", p.Config.GuildId),
+		)
 
-	if _, err := client.Rest().SetGuildCommands(client.ApplicationID(), p.Config.GuildId, p.ApplicationCommands); err != nil {
-		return nil, err
+		if _, err := client.Rest().SetGuildCommands(client.ApplicationID(), p.Config.GuildId, p.ApplicationCommands); err != nil {
+			return nil, err
+		}
+
+		slog.Info("set guild commands", slog.Int("command_count", len(p.ApplicationCommands)))
+
+		p.LC.Append(fx.StartStopHook(client.OpenGateway, func(ctx context.Context) {
+			slog.Info("shutting down")
+			client.SetPresence(ctx, gateway.WithOnlineStatus(discord.OnlineStatusInvisible))
+			client.Close(ctx)
+			slog.Info("goodbye")
+		}))
 	}
-
-	slog.Info("set guild commands", slog.Int("command_count", len(p.ApplicationCommands)))
-
-	p.LC.Append(fx.StartStopHook(client.OpenGateway, func(ctx context.Context) {
-		slog.Info("shutting down")
-		client.SetPresence(ctx, gateway.WithOnlineStatus(discord.OnlineStatusInvisible))
-		client.Close(ctx)
-		slog.Info("goodbye")
-	}))
 
 	return client, nil
 }
