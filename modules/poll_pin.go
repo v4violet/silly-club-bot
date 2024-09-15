@@ -4,7 +4,9 @@ package modules
 
 import (
 	"log/slog"
+	"time"
 
+	"github.com/caarlos0/env/v11"
 	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/events"
@@ -12,9 +14,17 @@ import (
 	"go.uber.org/fx"
 )
 
+type PollPinConfig struct {
+	// 7 days (168 hours) + 1 hour
+	MaxPollDuration time.Duration `env:"MODULES_POLL_PIN_MAX_POLL_DURATION" envDefault:"169h"`
+}
+
 func init() {
 	modules = append(modules, fx.Module("modules/poll_pin",
-		fx.Provide(ProvidePollPin),
+		fx.Provide(
+			env.ParseAs[PollPinConfig],
+			ProvidePollPin,
+		),
 		fx.Invoke(NewPollPin),
 	))
 }
@@ -27,10 +37,16 @@ func ProvidePollPin() Results {
 	}
 }
 
-func NewPollPin(p Params) {
+const SEVEN_DAYS_ONE_HOUR = ((7 * 24 * time.Hour) + time.Hour)
+
+func NewPollPin(p ParamsWithConfig[PollPinConfig]) {
 	p.Client.AddEventListeners(
 		bot.NewListenerFunc(func(event *events.GuildMessageCreate) {
 			if event.Message.Author.Bot || event.GuildID != p.DiscordConfig.GuildId || event.Message.Poll == nil {
+				return
+			}
+			if event.Message.Poll.Expiry.Sub(time.Now()) > p.Config.MaxPollDuration {
+				event.Client().Rest().AddReaction(event.ChannelID, event.MessageID, "⌛")
 				return
 			}
 			pins, err := event.Client().Rest().GetPinnedMessages(event.ChannelID)
