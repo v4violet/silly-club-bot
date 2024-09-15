@@ -57,7 +57,7 @@ func NewPollPin(p Params) {
 			if event.Message.Author.Bot || event.GuildID != p.DiscordConfig.GuildId {
 				return
 			}
-			if event.Message.Poll != nil && event.Message.Poll.Results != nil && event.Message.Poll.Results.IsFinalized {
+			if event.Message.Poll != nil && event.Message.Poll.Results != nil && event.Message.Poll.Results.IsFinalized && event.Message.Pinned {
 				if err := event.Client().Rest().UnpinMessage(event.ChannelID, event.MessageID); err != nil {
 					slog.Error("error unpinning poll message", slog.Any("error", err))
 					return
