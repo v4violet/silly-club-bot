@@ -1,5 +1,5 @@
 {{define "modules.set_color.success" -}}
-Set color to `{{.Color}}`
+{{if .DryRun}}[DRYRUN] {{end}}Set color to `{{.Color}}`
 {{- end}}
 
 {{define "modules.set_color.errors.color_convert" -}}

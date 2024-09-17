@@ -201,6 +201,11 @@ func ProvideSetColor() ApplicationCommandsResults {
 						Required:     true,
 						Autocomplete: true,
 					},
+					discord.ApplicationCommandOptionBool{
+						Name:        "dryrun",
+						Description: "dry run",
+						Required:    false,
+					},
 				},
 				IntegrationTypes: []discord.ApplicationIntegrationType{discord.ApplicationIntegrationTypeGuildInstall},
 				Contexts:         []discord.InteractionContextType{discord.InteractionContextTypeGuild},
@@ -285,6 +290,7 @@ func NewSetColor(p ParamsWithConfigAndTemplate[SetColorConfig]) {
 			}
 
 			data := event.SlashCommandInteractionData()
+			dryrun := data.Bool("dryrun")
 			color_raw := strings.ToLower(strings.TrimSpace(data.String("color")))
 			allow_black := false
 			var color csscolorparser.Color
@@ -375,64 +381,67 @@ func NewSetColor(p ParamsWithConfigAndTemplate[SetColorConfig]) {
 				)
 				return
 			}
-			role_name := fmt.Sprintf("color/%s", color_str)
-			permissions := discord.PermissionsNone
-			if color_role != nil {
-				if _, err := event.Client().Rest().UpdateRole(color_role.GuildID, color_role.ID, discord.RoleUpdate{
-					Name:        &role_name,
-					Color:       &color_int,
-					Permissions: &permissions,
-				}); err != nil {
-					event.Client().Rest().UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.NewMessageUpdateBuilder().
-						SetContent(templateutils.MustExecuteTemplateToString(p.Template, "modules.set_color.errors.role_update", nil)).
-						SetFlags(discord.MessageFlagEphemeral).
-						Build(),
-					)
-					slog.Error("error updating color role",
-						slog.Any("error", err),
-						slog.Any("guild_id", *event.GuildID()),
-						slog.Any("role_id", color_role.ID),
-					)
-					return
-				}
-			} else {
-				role, err := event.Client().Rest().CreateRole(*event.GuildID(), discord.RoleCreate{
-					Name:        role_name,
-					Color:       color_int,
-					Permissions: &permissions,
-				})
-				if err != nil {
-					slog.Error("error creating color role",
-						slog.Any("error", err),
-						slog.Any("guild_id", *event.GuildID()),
-					)
-					event.Client().Rest().UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.NewMessageUpdateBuilder().
-						SetContent(templateutils.MustExecuteTemplateToString(p.Template, "modules.set_color.errors.role_create", nil)).
-						SetFlags(discord.MessageFlagEphemeral).
-						Build(),
-					)
-					return
-				}
-				if err := event.Client().Rest().AddMemberRole(*event.GuildID(), event.User().ID, role.ID); err != nil {
-					slog.Error("error adding color role to member",
-						slog.Any("error", err),
-						slog.Any("guild_id", *event.GuildID()),
-						slog.Any("role_id", role.ID),
-						slog.Any("user_id", event.User().ID),
-					)
-					event.Client().Rest().UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.NewMessageUpdateBuilder().
-						SetContent(templateutils.MustExecuteTemplateToString(p.Template, "modules.set_color.errors.role_add_member", nil)).
-						SetFlags(discord.MessageFlagEphemeral).
-						Build(),
-					)
-					return
+			if !dryrun {
+				role_name := fmt.Sprintf("color/%s", color_str)
+				permissions := discord.PermissionsNone
+				if color_role != nil {
+					if _, err := event.Client().Rest().UpdateRole(color_role.GuildID, color_role.ID, discord.RoleUpdate{
+						Name:        &role_name,
+						Color:       &color_int,
+						Permissions: &permissions,
+					}); err != nil {
+						event.Client().Rest().UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.NewMessageUpdateBuilder().
+							SetContent(templateutils.MustExecuteTemplateToString(p.Template, "modules.set_color.errors.role_update", nil)).
+							SetFlags(discord.MessageFlagEphemeral).
+							Build(),
+						)
+						slog.Error("error updating color role",
+							slog.Any("error", err),
+							slog.Any("guild_id", *event.GuildID()),
+							slog.Any("role_id", color_role.ID),
+						)
+						return
+					}
+				} else {
+					role, err := event.Client().Rest().CreateRole(*event.GuildID(), discord.RoleCreate{
+						Name:        role_name,
+						Color:       color_int,
+						Permissions: &permissions,
+					})
+					if err != nil {
+						slog.Error("error creating color role",
+							slog.Any("error", err),
+							slog.Any("guild_id", *event.GuildID()),
+						)
+						event.Client().Rest().UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.NewMessageUpdateBuilder().
+							SetContent(templateutils.MustExecuteTemplateToString(p.Template, "modules.set_color.errors.role_create", nil)).
+							SetFlags(discord.MessageFlagEphemeral).
+							Build(),
+						)
+						return
+					}
+					if err := event.Client().Rest().AddMemberRole(*event.GuildID(), event.User().ID, role.ID); err != nil {
+						slog.Error("error adding color role to member",
+							slog.Any("error", err),
+							slog.Any("guild_id", *event.GuildID()),
+							slog.Any("role_id", role.ID),
+							slog.Any("user_id", event.User().ID),
+						)
+						event.Client().Rest().UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.NewMessageUpdateBuilder().
+							SetContent(templateutils.MustExecuteTemplateToString(p.Template, "modules.set_color.errors.role_add_member", nil)).
+							SetFlags(discord.MessageFlagEphemeral).
+							Build(),
+						)
+						return
+					}
 				}
 			}
 
 			event.Client().Rest().UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.NewMessageUpdateBuilder().
 				SetEmbeds(discord.Embed{
-					Title: templateutils.MustExecuteTemplateToString(p.Template, "modules.set_color.success", map[string]string{
-						"Color": color_str,
+					Title: templateutils.MustExecuteTemplateToString(p.Template, "modules.set_color.success", map[string]any{
+						"Color":  color_str,
+						"DryRun": dryrun,
 					}),
 					Color: color_int,
 				}).
@@ -440,16 +449,18 @@ func NewSetColor(p ParamsWithConfigAndTemplate[SetColorConfig]) {
 				Build(),
 			)
 
-			now := time.Now()
-			event.Client().Rest().CreateMessage(p.Config.LogChannel, discord.MessageCreate{
-				Embeds: []discord.Embed{
-					{
-						Description: event.Member().Mention(),
-						Color:       color_int,
-						Timestamp:   &now,
+			if !dryrun {
+				now := time.Now()
+				event.Client().Rest().CreateMessage(p.Config.LogChannel, discord.MessageCreate{
+					Embeds: []discord.Embed{
+						{
+							Description: event.Member().Mention(),
+							Color:       color_int,
+							Timestamp:   &now,
+						},
 					},
-				},
-			})
+				})
+			}
 		}),
 	)
 }
