@@ -202,6 +202,8 @@ func ProvideSetColor() ApplicationCommandsResults {
 						Autocomplete: true,
 					},
 				},
+				IntegrationTypes: []discord.ApplicationIntegrationType{discord.ApplicationIntegrationTypeGuildInstall},
+				Contexts:         []discord.InteractionContextType{discord.InteractionContextTypeGuild},
 			},
 		},
 	}
