@@ -256,6 +256,11 @@ func NewSetColor(p ParamsWithConfigAndTemplate[SetColorConfig]) {
 						Name:  color,
 						Value: color,
 					})
+				} else {
+					choices = append(choices, discord.AutocompleteChoiceString{
+						Name:  "#",
+						Value: "#",
+					})
 				}
 				choices = append(choices, discord.AutocompleteChoiceString{
 					Name:  "random",
