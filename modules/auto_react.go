@@ -21,7 +21,7 @@ var auto_reactions_raw = map[string]string{
 	"(?i)(ch|chapter\\s*)2":          "ch2_wen:1144404092093997056",
 	"(?i)boy(s|kisser)":              "boykisser:1156664341286899772",
 	"(?i)girl(s|kisser)":             "girlkisser:1202306410352738354",
-	"(?i)cope":                       "COPIUM:1144404181000671354",
+	"(?i)cop(e|i(um|ng))":            "COPIUM:1144404181000671354",
 	"(?i)cucumber":                   "cucumber:1237250194089971712",
 	"(?i)sus":                        "amogus:1144404244615659590",
 	"(?i)pipe":                       "metalPipe:1236853099360948255",
