@@ -24,7 +24,7 @@ var auto_reactions_raw = map[string]string{
 	"(?i)cop(e|i(um|ng))":            "COPIUM:1144404181000671354",
 	"(?i)cucumber":                   "cucumber:1237250194089971712",
 	"(?i)pipe":                       "metalPipe:1236853099360948255",
-	"(?i)bean":                       "🫘",
+	"(?i)(bean|🫘)":                   "🫘",
 	"(?i)(hl|half(-|\\s)+life\\s*)3": "hl3_wen:1271947068503756872",
 	"(?i)ivy":                        "ivykisser:1280588649276244038",
 	"(?i)trans":                      "transgender:1195201358383554681",
