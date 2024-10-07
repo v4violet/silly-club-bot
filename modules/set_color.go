@@ -451,13 +451,29 @@ func NewSetColor(p ParamsWithConfigAndTemplate[SetColorConfig]) {
 
 			if !dryrun {
 				now := time.Now()
+				inline := true
 				event.Client().Rest().CreateMessage(p.Config.LogChannel, discord.MessageCreate{
 					Embeds: []discord.Embed{
 						{
 							Description: event.Member().Mention(),
 							Color:       color_int,
-							Timestamp:   &now,
+							Fields: []discord.EmbedField{
+								{
+									Name:   "Input",
+									Value:  fmt.Sprintf("`%s`", color_raw),
+									Inline: &inline,
+								},
+								{
+									Name:   "Output",
+									Value:  fmt.Sprintf("`%s`", color_str),
+									Inline: &inline,
+								},
+							},
+							Timestamp: &now,
 						},
+					},
+					AllowedMentions: &discord.AllowedMentions{
+						Parse: []discord.AllowedMentionType{},
 					},
 				})
 			}
