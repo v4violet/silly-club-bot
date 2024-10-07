@@ -3,6 +3,8 @@
 package modules
 
 import (
+	_ "embed"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"regexp"
@@ -16,20 +18,8 @@ import (
 	"go.uber.org/fx"
 )
 
-var auto_reactions_raw = map[string]string{
-	"(?i)(penis|cock|dick|cum)":      "cum:1144596862075154562",
-	"(?i)(ch|chapter\\s*)2":          "ch2_wen:1144404092093997056",
-	"(?i)(boy(s|kisser)|yoai)":       "boykisser:1156664341286899772",
-	"(?i)(girl(s|kisser)|yuri)":      "girlkisser:1202306410352738354",
-	"(?i)cop(e|i(um|ng))":            "COPIUM:1144404181000671354",
-	"(?i)cucumber":                   "cucumber:1237250194089971712",
-	"(?i)pipe":                       "metalPipe:1236853099360948255",
-	"(?i)(bean|🫘)":                   "🫘",
-	"(?i)(hl|half(-|\\s)+life\\s*)3": "hl3_wen:1271947068503756872",
-	"(?i)ivy":                        "ivykisser:1280588649276244038",
-	"(?i)trans":                      "transgender:1195201358383554681",
-	"(?i)horny":                      "panting:1144606367924097124",
-}
+//go:embed auto_react.json
+var auto_reactions_raw string
 
 var auto_reactions = map[*regexp.Regexp]string{}
 
@@ -48,8 +38,12 @@ func ProvideAutoReact() Results {
 	}
 }
 
-func NewAutoReact(p Params) error {
-	for regex_raw, emojiId := range auto_reactions_raw {
+func ProcessAutoReactions() error {
+	auto_reactions_unprocessed := map[string]string{}
+	if err := json.Unmarshal([]byte(auto_reactions_raw), &auto_reactions_unprocessed); err != nil {
+		return err
+	}
+	for regex_raw, emojiId := range auto_reactions_unprocessed {
 		regex, err := regexp.Compile(regex_raw)
 		if err != nil {
 			slog.Error("failed to compile regex",
@@ -60,6 +54,13 @@ func NewAutoReact(p Params) error {
 			return err
 		}
 		auto_reactions[regex] = emojiId
+	}
+	return nil
+}
+
+func NewAutoReact(p Params) error {
+	if err := ProcessAutoReactions(); err != nil {
+		return err
 	}
 	p.Client.AddEventListeners(
 		bot.NewListenerFunc(func(event *events.GuildMessageCreate) {
