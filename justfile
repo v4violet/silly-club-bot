@@ -33,7 +33,7 @@ tidy:
     go mod tidy
 
 test:
-    go test {{build_flags_test}}
+    go test {{build_flags_test}} -v ./...
 
 build:
     go build {{build_flags}}
